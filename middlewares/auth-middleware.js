@@ -8,10 +8,10 @@ const customAuth = async (req, res, next) => {
   if (!token && token == undefined) {
     return res.status(401).json({ success: false, key: "token_not_provided", error: 'Access denied. No token provided.' });
   }
-  console.log("Token:", token);
   try {
     const decoded = jwt.verify(token, jwtSecret);
     const user = await User.findById(decoded._id || decoded.id);
+
     if (!user) {
       return res.status(404).json({ success: false, key: "unknown_user", error: 'User not found.' });
     }

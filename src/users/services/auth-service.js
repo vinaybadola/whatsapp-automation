@@ -22,7 +22,6 @@ export default class AuthService {
 
     async loginUser(user) {
         try {
-            const foundUser = await this.authRepository.findOne({email : user.email});
             const token = await this.authRepository.loginUser(user);
             return token;
         } catch (err) {

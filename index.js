@@ -3,13 +3,10 @@ import app from "./app.js";
 const PORT = port || 5000;
 import {log} from './utils/logger.js';
 
-// Home route
 app.get('/', (req, res) => {
   res.send('Namaste World!');
 });
 
-
-// Error-handling middleware
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     log.error(`Error: ${err.message}`);
@@ -23,10 +20,8 @@ app.use((err, req, res, next) => {
 });
 
 
-// Catch-all route for unmatched routes
 app.all('*', (req, res) => res.status(404).json({ message: 'No Matching Route' }));
 
-// Start the server
 app.listen(PORT, (err) => {
   if(enviornment === 'DEVELOPMENT' ){
     log.info(`Server started on port ${PORT}`);

@@ -34,27 +34,28 @@ export default class AuthRepository {
    * @returns {Promise<string>}
    */
 
-    async loginUser(user){
-        try{
-            const {email, password} = user;
+    async loginUser(user) {
+        try {
+            const { email, password } = user;
+    
             const foundUser = await userModel.findOne({ email });
-            if(!foundUser){
+            if (!foundUser) {
                 throw new Error("User not found");
             }
+    
             const isMatch = await bcrypt.compare(password, foundUser.password);
-
-            if(!isMatch){
+            if (!isMatch) {
                 throw new Error("Invalid credentials");
             }
-
-            const UserModel = new userModel();
-            const token = UserModel.generateAuthToken(); 
+    
+            const token = foundUser.generateAuthToken();
+    
             await foundUser.save();
-            user.password = undefined;
-
-            return token;
-            }
-        catch(err){
+    
+            foundUser.password = undefined;
+    
+            return token ;
+        } catch (err) {
             throw new Error(`Error logging in user: ${err.message}`);
         }
     }
