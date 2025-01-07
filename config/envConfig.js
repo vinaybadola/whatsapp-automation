@@ -1,0 +1,10 @@
+import { config } from 'dotenv';
+config();
+export const dbUri = process.env.MONGO_URI;
+export const port = process.env.PORT || 5000;
+export const jwtSecret = process.env.JWT_SECRET;
+export const dbName = process.env.DB_NAME;
+export const secretKey = process.env.SECRET_KEY;
+export const refreshTokenExpirationTime = 7 * 24 * 60 * 60 * 1000;
+export const frontendUri = process.env.FRONTEND_URL;
+export const enviornment = process.env.NODE_ENV;

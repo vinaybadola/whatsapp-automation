@@ -1,0 +1,232 @@
+2025-01-06 12:30:15 [info]: Logger initialized successfully
+2025-01-06 12:30:36 [info]: Logger initialized successfully
+2025-01-06 12:38:02 [info]: Logger initialized successfully
+2025-01-06 12:38:02 [info]: Server is running on port 8000
+2025-01-06 13:33:29 [info]: Logger initialized successfully
+2025-01-06 13:33:29 [info]: Server is running on port 8000
+2025-01-06 13:33:51 [info]: Logger initialized successfully
+2025-01-06 13:33:51 [info]: Server is running on port 8000
+2025-01-06 13:34:57 [info]: Logger initialized successfully
+2025-01-06 13:34:57 [info]: Server is running on port 8000
+2025-01-06 13:37:33 [info]: Logger initialized successfully
+2025-01-06 13:37:33 [info]: Server is running on port 8000
+2025-01-06 13:37:50 [info]: Logger initialized successfully
+2025-01-06 13:38:56 [info]: Logger initialized successfully
+2025-01-06 13:46:07 [info]: Logger initialized successfully
+2025-01-06 13:49:29 [info]: Logger initialized successfully
+2025-01-06 13:49:59 [info]: Logger initialized successfully
+2025-01-06 13:51:34 [info]: Logger initialized successfully
+2025-01-06 13:52:23 [info]: Logger initialized successfully
+2025-01-06 13:52:44 [info]: Logger initialized successfully
+2025-01-06 13:53:17 [info]: Logger initialized successfully
+2025-01-06 13:53:22 [info]: Logger initialized successfully
+2025-01-06 13:53:39 [info]: Logger initialized successfully
+2025-01-06 13:56:30 [info]: Logger initialized successfully
+2025-01-06 13:58:33 [info]: Logger initialized successfully
+2025-01-06 14:01:17 [info]: Logger initialized successfully
+2025-01-06 14:08:56 [info]: Logger initialized successfully
+2025-01-06 14:09:15 [info]: Logger initialized successfully
+2025-01-06 14:14:41 [info]: Logger initialized successfully
+2025-01-06 14:15:17 [info]: Logger initialized successfully
+2025-01-06 14:16:11 [info]: Logger initialized successfully
+2025-01-06 14:22:58 [info]: Logger initialized successfully
+2025-01-06 14:23:29 [info]: Logger initialized successfully
+2025-01-06 14:23:36 [info]: Logger initialized successfully
+2025-01-06 14:24:06 [info]: Logger initialized successfully
+2025-01-06 14:25:20 [info]: Logger initialized successfully
+2025-01-06 14:28:21 [info]: Logger initialized successfully
+2025-01-06 14:29:47 [info]: Logger initialized successfully
+2025-01-06 14:30:28 [info]: Logger initialized successfully
+2025-01-06 15:12:33 [info]: Logger initialized successfully
+2025-01-06 15:16:45 [info]: Logger initialized successfully
+2025-01-06 15:18:27 [info]: Logger initialized successfully
+2025-01-06 15:18:56 [info]: Logger initialized successfully
+2025-01-06 15:20:33 [info]: Logger initialized successfully
+2025-01-06 15:26:06 [info]: Logger initialized successfully
+2025-01-06 15:27:00 [info]: Logger initialized successfully
+2025-01-06 15:27:22 [info]: Logger initialized successfully
+2025-01-06 15:32:12 [info]: Logger initialized successfully
+2025-01-06 15:33:17 [info]: Logger initialized successfully
+2025-01-06 15:33:53 [info]: Logger initialized successfully
+2025-01-06 15:37:51 [info]: Logger initialized successfully
+2025-01-06 15:40:39 [info]: Logger initialized successfully
+2025-01-06 15:42:29 [info]: Logger initialized successfully
+2025-01-06 15:45:34 [info]: Logger initialized successfully
+2025-01-06 15:46:53 [info]: Logger initialized successfully
+2025-01-06 15:47:43 [info]: Logger initialized successfully
+2025-01-06 15:48:30 [info]: Logger initialized successfully
+2025-01-06 15:49:17 [info]: Logger initialized successfully
+2025-01-06 15:59:21 [info]: Logger initialized successfully
+2025-01-06 16:03:32 [info]: Logger initialized successfully
+2025-01-06 16:03:48 [info]: Logger initialized successfully
+2025-01-06 16:04:40 [info]: Logger initialized successfully
+2025-01-06 16:05:56 [info]: Logger initialized successfully
+2025-01-06 16:06:09 [info]: Logger initialized successfully
+2025-01-06 16:06:10 [info]: Server started on port 8000
+2025-01-06 16:08:14 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:10:20 [info]: Logger initialized successfully
+2025-01-06 16:10:20 [info]: Server started on port 8000
+2025-01-06 16:10:26 [info]: Logger initialized successfully
+2025-01-06 16:10:26 [info]: Server started on port 8000
+2025-01-06 16:10:51 [info]: Logger initialized successfully
+2025-01-06 16:10:52 [info]: Server started on port 8000
+2025-01-06 16:11:08 [info]: Logger initialized successfully
+2025-01-06 16:11:09 [info]: Server started on port 8000
+2025-01-06 16:11:20 [info]: Logger initialized successfully
+2025-01-06 16:11:21 [info]: Server started on port 8000
+2025-01-06 16:11:24 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:14:25 [info]: Logger initialized successfully
+2025-01-06 16:14:25 [info]: Server started on port 8000
+2025-01-06 16:16:15 [info]: Logger initialized successfully
+2025-01-06 16:16:16 [info]: Server started on port 8000
+2025-01-06 16:17:57 [info]: Logger initialized successfully
+2025-01-06 16:17:57 [info]: Server started on port 8000
+2025-01-06 16:20:32 [info]: Logger initialized successfully
+2025-01-06 16:20:33 [info]: Server started on port 8000
+2025-01-06 16:21:50 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:23:00 [info]: Logger initialized successfully
+2025-01-06 16:23:00 [info]: Server started on port 8000
+2025-01-06 16:23:24 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:24:11 [info]: Logger initialized successfully
+2025-01-06 16:24:11 [info]: Server started on port 8000
+2025-01-06 16:24:15 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:24:28 [info]: Logger initialized successfully
+2025-01-06 16:24:28 [info]: Server started on port 8000
+2025-01-06 16:24:38 [info]: Logger initialized successfully
+2025-01-06 16:24:38 [info]: Server started on port 8000
+2025-01-06 16:24:40 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:25:03 [info]: Logger initialized successfully
+2025-01-06 16:25:04 [info]: Server started on port 8000
+2025-01-06 16:26:43 [info]: Logger initialized successfully
+2025-01-06 16:26:44 [info]: Server started on port 8000
+2025-01-06 16:27:11 [info]: Logger initialized successfully
+2025-01-06 16:27:11 [info]: Server started on port 8000
+2025-01-06 16:33:15 [info]: Logger initialized successfully
+2025-01-06 16:33:16 [info]: Server started on port 8000
+2025-01-06 16:33:20 [info]: Logger initialized successfully
+2025-01-06 16:33:20 [info]: Server started on port 8000
+2025-01-06 16:35:59 [info]: Logger initialized successfully
+2025-01-06 16:36:00 [info]: Server started on port 8000
+2025-01-06 16:36:42 [info]: Logger initialized successfully
+2025-01-06 16:36:42 [info]: Server started on port 8000
+2025-01-06 16:36:46 [info]: Logger initialized successfully
+2025-01-06 16:36:47 [info]: Server started on port 8000
+2025-01-06 16:38:00 [info]: Logger initialized successfully
+2025-01-06 16:38:00 [info]: Server started on port 8000
+2025-01-06 16:39:55 [info]: Logger initialized successfully
+2025-01-06 16:39:56 [info]: Server started on port 8000
+2025-01-06 16:41:23 [info]: Logger initialized successfully
+2025-01-06 16:41:23 [info]: Server started on port 8000
+2025-01-06 16:41:28 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:42:28 [info]: Logger initialized successfully
+2025-01-06 16:42:28 [info]: Server started on port 8000
+2025-01-06 16:42:30 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:43:33 [info]: Logger initialized successfully
+2025-01-06 16:43:33 [info]: Server started on port 8000
+2025-01-06 16:43:34 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:44:10 [info]: Logger initialized successfully
+2025-01-06 16:44:10 [info]: Server started on port 8000
+2025-01-06 16:44:11 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:44:31 [info]: Logger initialized successfully
+2025-01-06 16:44:31 [info]: Server started on port 8000
+2025-01-06 16:44:36 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:45:00 [info]: Logger initialized successfully
+2025-01-06 16:45:01 [info]: Server started on port 8000
+2025-01-06 16:45:02 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:45:44 [info]: Logger initialized successfully
+2025-01-06 16:45:44 [info]: Server started on port 8000
+2025-01-06 16:45:46 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:47:30 [info]: Logger initialized successfully
+2025-01-06 16:47:30 [info]: Server started on port 8000
+2025-01-06 16:47:32 [error]: An unexpected error occurred while creating user in controller :
+2025-01-06 16:48:04 [info]: Logger initialized successfully
+2025-01-06 16:48:04 [info]: Server started on port 8000
+2025-01-06 16:48:07 [error]: An unexpected error occurred while creating user in controller . undefined
+2025-01-06 16:49:44 [info]: Logger initialized successfully
+2025-01-06 16:49:44 [info]: Server started on port 8000
+2025-01-06 16:49:47 [error]: An unexpected error occurred while creating user in controller. Error registering user: Error creating user: E11000 duplicate key error collection: whatsapp-automation.users index: phone_1 dup key: { phone: "7457819144" }
+2025-01-06 16:52:57 [info]: Logger initialized successfully
+2025-01-06 16:52:57 [info]: Server started on port 8000
+2025-01-06 16:53:05 [error]: An unexpected error occurred while creating user in controller. Error registering user: Error creating user: E11000 duplicate key error collection: whatsapp-automation.users index: phone_1 dup key: { phone: "7457819144" }
+2025-01-06 16:57:07 [info]: Logger initialized successfully
+2025-01-06 16:57:08 [info]: Server started on port 8000
+2025-01-06 16:57:11 [error]: An unexpected error occurred while creating user in controller. Error registering user: Error creating user: E11000 duplicate key error collection: whatsapp-automation.users index: phone_1 dup key: { phone: "7457819144" }
+2025-01-06 16:58:40 [info]: Logger initialized successfully
+2025-01-06 16:58:40 [info]: Server started on port 8000
+2025-01-06 16:58:43 [error]: An unexpected error occurred while creating user in controller. Cannot read properties of undefined (reading '0')
+2025-01-06 17:00:52 [info]: Logger initialized successfully
+2025-01-06 17:00:52 [info]: Server started on port 8000
+2025-01-06 17:01:34 [info]: Logger initialized successfully
+2025-01-06 17:01:34 [info]: Server started on port 8000
+2025-01-06 17:02:30 [info]: Logger initialized successfully
+2025-01-06 17:02:30 [info]: Server started on port 8000
+2025-01-06 17:03:25 [info]: Logger initialized successfully
+2025-01-06 17:03:26 [info]: Server started on port 8000
+2025-01-06 17:03:35 [info]: Logger initialized successfully
+2025-01-06 17:03:36 [info]: Server started on port 8000
+2025-01-06 17:03:39 [info]: Logger initialized successfully
+2025-01-06 17:03:39 [info]: Server started on port 8000
+2025-01-06 17:04:16 [info]: Logger initialized successfully
+2025-01-06 17:04:16 [info]: Server started on port 8000
+2025-01-06 17:08:49 [error]: An unexpected error occurred while logging in user in controller :
+2025-01-06 17:09:20 [info]: Logger initialized successfully
+2025-01-06 17:09:21 [info]: Server started on port 8000
+2025-01-06 17:09:53 [info]: Logger initialized successfully
+2025-01-06 17:09:54 [info]: Server started on port 8000
+2025-01-06 17:10:00 [info]: Logger initialized successfully
+2025-01-06 17:10:01 [info]: Server started on port 8000
+2025-01-06 17:12:49 [error]: An unexpected error occurred while logging in user in controller :
+2025-01-06 17:13:12 [info]: Logger initialized successfully
+2025-01-06 17:13:12 [info]: Server started on port 8000
+2025-01-06 17:19:26 [info]: Logger initialized successfully
+2025-01-06 17:19:27 [info]: Server started on port 8000
+2025-01-06 17:19:42 [error]: An unexpected error occurred while logging in user in controller. Error logging in user: Error logging in user: user.generateAuthToken is not a function
+2025-01-06 17:20:13 [info]: Logger initialized successfully
+2025-01-06 17:20:13 [info]: Server started on port 8000
+2025-01-06 17:20:19 [error]: An unexpected error occurred while logging in user in controller. Error logging in user: Error logging in user: userModel.generateAuthToken is not a function
+2025-01-06 17:21:59 [info]: Logger initialized successfully
+2025-01-06 17:22:00 [info]: Server started on port 8000
+2025-01-06 17:35:27 [info]: Logger initialized successfully
+2025-01-06 17:35:27 [info]: Server started on port 8000
+2025-01-06 17:36:47 [info]: Logger initialized successfully
+2025-01-06 17:36:48 [info]: Server started on port 8000
+2025-01-06 17:57:06 [info]: Logger initialized successfully
+2025-01-06 17:57:06 [info]: Server started on port 8000
+2025-01-06 18:00:31 [info]: Logger initialized successfully
+2025-01-06 18:00:31 [info]: Server started on port 8000
+2025-01-06 18:03:57 [info]: Logger initialized successfully
+2025-01-06 18:03:57 [info]: Server started on port 8000
+2025-01-06 18:05:54 [info]: Logger initialized successfully
+2025-01-06 18:05:55 [info]: Server started on port 8000
+2025-01-06 18:07:20 [info]: Logger initialized successfully
+2025-01-06 18:07:20 [info]: Server started on port 8000
+2025-01-06 18:08:21 [info]: Logger initialized successfully
+2025-01-06 18:08:21 [info]: Server started on port 8000
+2025-01-06 18:11:29 [info]: Logger initialized successfully
+2025-01-06 18:11:30 [info]: Server started on port 8000
+2025-01-06 18:11:49 [error]: An unexpected error occurred while creating user in controller. token is not defined
+2025-01-06 18:12:31 [info]: Logger initialized successfully
+2025-01-06 18:12:32 [info]: Server started on port 8000
+2025-01-06 18:17:15 [info]: Logger initialized successfully
+2025-01-06 18:17:15 [info]: Server started on port 8000
+2025-01-06 18:21:53 [error]: An unexpected error occurred while creating user in controller. Cannot read properties of undefined (reading '0')
+2025-01-06 18:30:43 [error]: An unexpected error occurred while creating user in controller. Cannot read properties of undefined (reading '0')
+2025-01-06 18:31:05 [info]: Logger initialized successfully
+2025-01-06 18:31:05 [info]: Server started on port 8000
+2025-01-06 18:33:45 [info]: Logger initialized successfully
+2025-01-06 18:33:45 [info]: Server started on port 8000
+2025-01-06 18:36:17 [info]: Logger initialized successfully
+2025-01-06 18:36:18 [info]: Server started on port 8000
+2025-01-06 18:36:31 [error]: An unexpected error occurred while logging in user in controller. Cannot read properties of undefined (reading '0')
+2025-01-06 18:37:06 [info]: Logger initialized successfully
+2025-01-06 18:37:06 [info]: Server started on port 8000
+2025-01-06 18:37:09 [error]: An unexpected error occurred while logging in user in controller. Cannot read properties of undefined (reading '0')
+2025-01-06 18:37:51 [info]: Logger initialized successfully
+2025-01-06 18:37:51 [info]: Server started on port 8000
+2025-01-06 18:37:52 [error]: An unexpected error occurred while logging in user in controller. data is not defined
+2025-01-06 18:38:06 [info]: Logger initialized successfully
+2025-01-06 18:38:06 [info]: Server started on port 8000
+2025-01-06 18:39:00 [info]: Logger initialized successfully
+2025-01-06 18:39:01 [info]: Server started on port 8000
+2025-01-06 18:39:10 [info]: Logger initialized successfully
+2025-01-06 18:39:11 [info]: Server started on port 8000
