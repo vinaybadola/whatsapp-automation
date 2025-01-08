@@ -1,9 +1,5 @@
 import { body, param } from 'express-validator';
 
-export const validateId = [
-  param('id').isMongoId().withMessage('Invalid user ID'),
-];
-
 export const validateNewUserData = [
   body('name')
     .notEmpty().withMessage('Name is required')

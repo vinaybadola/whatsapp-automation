@@ -43,7 +43,7 @@ userSchema.methods.comparePassword = function (password) {
 // Generate an authentication token for the user
 userSchema.methods.generateAuthToken = function () {
   const token = sign(
-    { _id: this._id, email: this.email, role: this.role }, // Use `role` instead of `user_type`
+    { _id: this._id, email: this.email, role: this.role }, 
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );

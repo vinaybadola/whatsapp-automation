@@ -12,7 +12,7 @@ export default class UserController {
 
     getUserById = async (req, res) => {
         try {
-            const userId = req.params.id;
+            const userId = req.user.id || req.user._id;
             const user = await this.userService.getUserById(userId);
             if (!user) {
                 return res.status(404).json({ success: false, message: 'User not found' });
@@ -29,7 +29,7 @@ export default class UserController {
 
     updateUser = async (req, res) => {
         try {
-            const userId = req.params.id;
+            const userId = req.user.id || req.user._id;
             const updateData = req.body;
             const profileImage = req.file ? req.file.path : null;
     
