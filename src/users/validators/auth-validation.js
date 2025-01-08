@@ -1,4 +1,4 @@
-import { body, param } from 'express-validator';
+import { body } from 'express-validator';
 
 export const validateNewUserData = [
   body('name')
@@ -59,8 +59,6 @@ export const validateNewUserData = [
 ];
 
 export const validateUpdateUserData = [
-  param('id').isMongoId().withMessage('Invalid user ID'),
-
   body('name')
     .optional()
     .trim()

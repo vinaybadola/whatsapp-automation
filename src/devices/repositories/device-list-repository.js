@@ -6,7 +6,10 @@ export default class DeviceListRepository {
     }
 
     async getDeviceList(limit, skip) {
-        return await deviceListModel.find().skip(skip).limit(limit);
+        // count total devices with query
+        const totalItems = await deviceListModel.countDocuments();
+        const deviceList = await deviceListModel.find().skip(skip).limit(limit);
+        return {deviceList, totalItems};
     }
 
     async getDeviceById(deviceId) {
@@ -19,6 +22,10 @@ export default class DeviceListRepository {
 
     async deleteDevice(deviceId) {
         return await deviceListModel.findByIdAndDelete(deviceId);
+    }
+
+    async getData(data) {
+        return await deviceListModel.find(data);
     }
 }
 

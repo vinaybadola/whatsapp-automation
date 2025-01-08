@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 export default class DeviceListServices{
 
     /**
@@ -22,16 +23,22 @@ export default class DeviceListServices{
             if(!deviceData.userId){
                 throw new Error('Empty user id while creating device in service class');
             }
+            // check if number already exist
+            const checkExistingDeviceNumber = await this.deviceListRepository.getData({devicePhone : deviceData.devicePhone});
+            if(checkExistingDeviceNumber.length > 0){
+                throw new Error('Device number already exist');
+            }
 
             const getUserById = await this.userRepository.getUserById(deviceData.userId);
             if(!getUserById){
                 throw new Error('User not found');
             }
 
+            deviceData.apiToken = this.generateApiToken();
             const newDevice = await this.deviceListRepository.createDevice(deviceData);
             return newDevice;
         }catch(err){
-            throw new Error(`Error creating device: ${err.message}`);
+            throw new Error(err.message);
         }
     }
 
@@ -44,7 +51,10 @@ export default class DeviceListServices{
 
     async getDeviceList(limit, skip){
         try{
-            return await this.deviceListRepository.getDeviceList(limit, skip);
+            const {deviceList, totalItems} =  await this.deviceListRepository.getDeviceList(limit, skip);
+            const currentPageTotal = deviceList.length;
+            return {deviceList, totalItems, currentPageTotal};
+
         }catch(err){
             throw new Error(`Error getting device list: ${err.message}`);
         }
@@ -92,5 +102,13 @@ export default class DeviceListServices{
             throw new Error(`Error deleting device: ${err.message}`);
         }
     }
+
+    generateApiToken = () => {
+        const token = crypto.randomBytes(12).toString('base64')
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .slice(0, 16);
+        return token;
+    };
+    
 
 }

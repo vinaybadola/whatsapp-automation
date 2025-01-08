@@ -18,3 +18,139 @@
 2025-01-08 11:17:48 [info]: Server started on port 8000
 2025-01-08 11:18:21 [info]: Logger initialized successfully
 2025-01-08 11:18:21 [info]: Server started on port 8000
+2025-01-08 11:51:29 [info]: Logger initialized successfully
+2025-01-08 11:51:29 [info]: Server started on port 8000
+2025-01-08 11:53:45 [info]: Logger initialized successfully
+2025-01-08 11:53:45 [info]: Server started on port 8000
+2025-01-08 11:53:51 [info]: Logger initialized successfully
+2025-01-08 11:53:51 [info]: Server started on port 8000
+2025-01-08 11:54:14 [info]: Logger initialized successfully
+2025-01-08 11:54:14 [info]: Server started on port 8000
+2025-01-08 12:07:21 [info]: Logger initialized successfully
+2025-01-08 12:07:21 [info]: Server started on port 8000
+2025-01-08 12:08:03 [error]: Error: Error creating device: Empty user id while creating device in service class
+2025-01-08 12:08:24 [info]: Logger initialized successfully
+2025-01-08 12:08:25 [info]: Server started on port 8000
+2025-01-08 12:08:38 [error]: Error: Error creating device: Empty user id while creating device in service class
+2025-01-08 12:08:47 [info]: Logger initialized successfully
+2025-01-08 12:08:47 [info]: Server started on port 8000
+2025-01-08 12:09:01 [info]: Logger initialized successfully
+2025-01-08 12:09:01 [info]: Server started on port 8000
+2025-01-08 12:09:13 [error]: Error: Error creating device: Empty user id while creating device in service class
+2025-01-08 12:10:26 [info]: Logger initialized successfully
+2025-01-08 12:10:27 [info]: Server started on port 8000
+2025-01-08 12:10:34 [info]: Logger initialized successfully
+2025-01-08 12:10:34 [info]: Server started on port 8000
+2025-01-08 12:10:40 [error]: Error: Error creating device: Empty user id while creating device in service class
+2025-01-08 12:10:51 [info]: Logger initialized successfully
+2025-01-08 12:10:51 [info]: Server started on port 8000
+2025-01-08 12:11:00 [info]: Logger initialized successfully
+2025-01-08 12:11:00 [info]: Server started on port 8000
+2025-01-08 12:11:03 [error]: Error: Error creating device: Empty user id while creating device in service class
+2025-01-08 12:11:28 [info]: Logger initialized successfully
+2025-01-08 12:11:28 [info]: Server started on port 8000
+2025-01-08 12:11:54 [error]: Error: Error creating device: Empty user id while creating device in service class
+2025-01-08 12:12:06 [info]: Logger initialized successfully
+2025-01-08 12:12:06 [info]: Server started on port 8000
+2025-01-08 12:14:06 [info]: Logger initialized successfully
+2025-01-08 12:14:06 [info]: Server started on port 8000
+2025-01-08 12:14:09 [info]: Logger initialized successfully
+2025-01-08 12:14:09 [info]: Server started on port 8000
+2025-01-08 12:14:28 [error]: Error: Error creating device: Empty user id while creating device in service class
+2025-01-08 12:14:57 [info]: Logger initialized successfully
+2025-01-08 12:14:58 [info]: Server started on port 8000
+2025-01-08 12:15:05 [info]: Logger initialized successfully
+2025-01-08 12:15:05 [info]: Server started on port 8000
+2025-01-08 12:18:34 [info]: Logger initialized successfully
+2025-01-08 12:18:34 [info]: Server started on port 8000
+2025-01-08 12:20:16 [info]: Logger initialized successfully
+2025-01-08 12:20:16 [info]: Server started on port 8000
+2025-01-08 12:23:18 [error]: Error: Error creating device: Empty user id while creating device in service class
+2025-01-08 12:23:56 [info]: Logger initialized successfully
+2025-01-08 12:23:56 [info]: Server started on port 8000
+2025-01-08 12:23:58 [error]: Error: Error creating device: Empty user id while creating device in service class
+2025-01-08 12:24:05 [info]: Logger initialized successfully
+2025-01-08 12:24:05 [info]: Server started on port 8000
+2025-01-08 13:01:24 [error]: Error: Error creating device: Empty user id while creating device in service class
+2025-01-08 13:01:51 [info]: Logger initialized successfully
+2025-01-08 13:01:52 [info]: Server started on port 8000
+2025-01-08 13:01:56 [error]: Error: Error creating device: device-list validation failed: apiToken: Path `apiToken` is required.
+2025-01-08 13:02:24 [info]: Logger initialized successfully
+2025-01-08 13:02:25 [info]: Server started on port 8000
+2025-01-08 13:12:51 [info]: Logger initialized successfully
+2025-01-08 13:12:52 [info]: Server started on port 8000
+2025-01-08 13:13:17 [info]: Logger initialized successfully
+2025-01-08 13:13:17 [info]: Server started on port 8000
+2025-01-08 13:27:36 [info]: Logger initialized successfully
+2025-01-08 13:27:36 [info]: Server started on port 8000
+2025-01-08 13:29:44 [info]: Logger initialized successfully
+2025-01-08 13:29:44 [info]: Server started on port 8000
+2025-01-08 13:29:47 [error]: Error: Error creating device: E11000 duplicate key error collection: whatsapp-automation.device-lists index: devicePhone_1 dup key: { devicePhone: "7457819144" }
+2025-01-08 13:30:09 [info]: Logger initialized successfully
+2025-01-08 13:30:10 [info]: Server started on port 8000
+2025-01-08 13:30:12 [error]: Error: Error creating device: E11000 duplicate key error collection: whatsapp-automation.device-lists index: devicePhone_1 dup key: { devicePhone: "7457819144" }
+2025-01-08 13:31:06 [info]: Logger initialized successfully
+2025-01-08 13:31:06 [info]: Server started on port 8000
+2025-01-08 13:31:20 [error]: Error: Error creating device: this.deviceListRepository.getDeviceByUserId is not a function
+2025-01-08 13:31:36 [info]: Logger initialized successfully
+2025-01-08 13:31:36 [info]: Server started on port 8000
+2025-01-08 13:31:38 [error]: Error: Error creating device: E11000 duplicate key error collection: whatsapp-automation.device-lists index: devicePhone_1 dup key: { devicePhone: "7457819144" }
+2025-01-08 13:31:55 [info]: Logger initialized successfully
+2025-01-08 13:31:55 [info]: Server started on port 8000
+2025-01-08 13:31:59 [error]: Error: Error creating device: E11000 duplicate key error collection: whatsapp-automation.device-lists index: devicePhone_1 dup key: { devicePhone: "7457819144" }
+2025-01-08 13:32:16 [info]: Logger initialized successfully
+2025-01-08 13:32:16 [info]: Server started on port 8000
+2025-01-08 13:32:19 [error]: Error: Error creating device: Device number already exist
+2025-01-08 13:32:37 [info]: Logger initialized successfully
+2025-01-08 13:32:37 [info]: Server started on port 8000
+2025-01-08 13:34:06 [info]: Logger initialized successfully
+2025-01-08 13:34:06 [info]: Server started on port 8000
+2025-01-08 13:34:10 [error]: Error: Error creating device: undefined
+2025-01-08 13:35:12 [info]: Logger initialized successfully
+2025-01-08 13:35:13 [info]: Server started on port 8000
+2025-01-08 13:35:17 [info]: Logger initialized successfully
+2025-01-08 13:35:17 [info]: Server started on port 8000
+2025-01-08 13:35:20 [error]: Error: Error creating device: Device number already exist
+2025-01-08 13:36:35 [info]: Logger initialized successfully
+2025-01-08 13:36:35 [info]: Server started on port 8000
+2025-01-08 13:36:38 [error]: Error: Device number already exist
+2025-01-08 13:38:17 [error]: Error: total is not defined
+2025-01-08 13:40:28 [info]: Logger initialized successfully
+2025-01-08 13:40:29 [info]: Server started on port 8000
+2025-01-08 13:40:38 [error]: Error: count is not defined
+2025-01-08 13:40:54 [info]: Logger initialized successfully
+2025-01-08 13:40:55 [info]: Server started on port 8000
+2025-01-08 13:48:55 [info]: Logger initialized successfully
+2025-01-08 13:48:56 [info]: Server started on port 8000
+2025-01-08 13:50:14 [info]: Logger initialized successfully
+2025-01-08 13:50:14 [info]: Server started on port 8000
+2025-01-08 13:51:30 [info]: Logger initialized successfully
+2025-01-08 13:51:30 [info]: Server started on port 8000
+2025-01-08 13:51:34 [info]: Logger initialized successfully
+2025-01-08 13:51:34 [info]: Server started on port 8000
+2025-01-08 13:52:56 [info]: Logger initialized successfully
+2025-01-08 13:52:56 [info]: Server started on port 8000
+2025-01-08 13:53:34 [info]: Logger initialized successfully
+2025-01-08 13:53:35 [info]: Server started on port 8000
+2025-01-08 13:54:18 [info]: Logger initialized successfully
+2025-01-08 13:54:19 [info]: Server started on port 8000
+2025-01-08 13:54:59 [info]: Logger initialized successfully
+2025-01-08 13:54:59 [info]: Server started on port 8000
+2025-01-08 13:55:39 [info]: Logger initialized successfully
+2025-01-08 13:55:39 [info]: Server started on port 8000
+2025-01-08 13:55:58 [info]: Logger initialized successfully
+2025-01-08 13:55:59 [info]: Server started on port 8000
+2025-01-08 13:56:50 [info]: Logger initialized successfully
+2025-01-08 13:56:50 [info]: Server started on port 8000
+2025-01-08 13:59:21 [info]: Logger initialized successfully
+2025-01-08 13:59:21 [info]: Server started on port 8000
+2025-01-08 14:02:57 [info]: Logger initialized successfully
+2025-01-08 14:02:57 [info]: Server started on port 8000
+2025-01-08 14:03:57 [info]: Logger initialized successfully
+2025-01-08 14:03:57 [info]: Server started on port 8000
+2025-01-08 14:04:01 [info]: Logger initialized successfully
+2025-01-08 14:04:01 [info]: Server started on port 8000
+2025-01-08 14:04:17 [info]: Logger initialized successfully
+2025-01-08 14:04:17 [info]: Server started on port 8000
+2025-01-08 14:19:07 [info]: Logger initialized successfully
+2025-01-08 14:19:07 [info]: Server started on port 8000

@@ -5,11 +5,11 @@ export const paginate = (req) => {
     return { page, limit, skip };
 };
 
-export const paginateReturn = (page, limit, total) => {
+export const paginateReturn = (page, limit, total, currentPageTotal) => {
     const totalPages = Math.ceil(total / limit);
     const hasPrev = page > 1;
     const hasNext = page < totalPages
-    return { page, limit, total, totalPages, hasPrev, hasNext };
+    return { page, limit, total, currentPageTotal, totalPages, hasPrev, hasNext };
 }
 
   

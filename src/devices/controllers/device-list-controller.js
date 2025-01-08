@@ -3,6 +3,7 @@ import UserRepository from '../../users/repositories/user-repository.js';
 import DeviceListRepository from '../repositories/device-list-repository.js';
 import {log} from '../../../utils/logger.js';
 import { paginate, paginateReturn} from '../../../helpers/pagination.js';
+import { count } from 'console';
 
 export default class DeviceListController {
     constructor() {
@@ -12,6 +13,7 @@ export default class DeviceListController {
     createDevice = async(req,res) =>{
         try{
             const deviceData = req.body;
+            deviceData.userId = req.user._id || req.user.id;
             const newDevice = await this.deviceListServices.createDevice(deviceData);
             if(!newDevice){
                 return this.errorResponseHandler('Error creating device', 400, res);
@@ -19,23 +21,22 @@ export default class DeviceListController {
             return res.status(201).json({success: true, message: 'Device created successfully', data: newDevice});
         }
         catch(err){
-            if(err instanceof Error){
-                return this.errorResponseHandler(err.message, 400, res);
-            }
-            return this.errorResponseHandler('Error creating device', 500, res);
+            const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+            const status = err instanceof Error ? 400 : 500;
+            return this.errorResponseHandler(message, status, res);
         }
     }
 
     getDeviceList = async(req,res) =>{
         try{
             const {page, limit, skip} = paginate(req);
-            const deviceList = await this.deviceListServices.getDeviceList(limit, skip);
+            const {deviceList, totalItems, currentPageTotal} = await this.deviceListServices.getDeviceList(limit, skip);
             if(!deviceList){
                 return this.errorResponseHandler('Error getting device list', 400, res);
             }
             return res.status(200).json({success: true, message: 'Device list fetched successfully', 
                 data: deviceList, 
-                paginate : paginateReturn(page, limit, total)
+                paginate : paginateReturn(page, limit, totalItems, currentPageTotal)
             });
         }
         catch(err){
