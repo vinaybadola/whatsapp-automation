@@ -13,6 +13,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@adiwajshing/baileys": "^5.0.0",
+    "@whiskeysockets/baileys": "^6.7.9",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.5",
     "connect-mongo": "^5.1.0",
@@ -28,9 +30,12 @@
     "multer": "^1.4.5-lts.1",
     "nodemon": "^3.1.9",
     "puppeteer": "^23.11.1",
+    "puppeteer-core": "^23.11.1",
     "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
     "redis": "^4.7.0",
     "socket.io": "^4.8.1",
+    "whatsapp-web.js": "^1.26.0",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0"
   }

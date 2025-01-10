@@ -3,7 +3,6 @@ import UserRepository from '../../users/repositories/user-repository.js';
 import DeviceListRepository from '../repositories/device-list-repository.js';
 import {log} from '../../../utils/logger.js';
 import { paginate, paginateReturn} from '../../../helpers/pagination.js';
-import { count } from 'console';
 
 export default class DeviceListController {
     constructor() {

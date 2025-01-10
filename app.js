@@ -1,20 +1,45 @@
 import express from 'express';
-const app = express();
-
+import http from 'http'; 
+import { Server } from 'socket.io'; 
 import connectDB from './config/database.js';
 import securityMiddleware from './middlewares/security-middleware.js';
 import path from 'path';
+
+// Import routes
 import authRoutes from './src/users/routes/auth-route.js';
 import userRoutes from './src/users/routes/user-route.js';
 import deviceListRoutes from './src/devices/routes/device-list-route.js';
+import deviceConnectRoutes from './src/devices/routes/device-connect-route.js';
+
+const app = express();
+const server = http.createServer(app); 
+const io = new Server(server);
+
 connectDB();
 
 securityMiddleware(app);
 
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Attach Socket.IO to the app
+app.set('socketio', io);
 
+io.on('connection', (socket) => {
+    console.log('Client connected:', socket.id);
+  
+    socket.on('disconnect', () => {
+      console.log('Client disconnected:', socket.id);
+    });
+  
+    socket.on('error', (err) => {
+      console.error('Socket error:', err);
+    });
+  });
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use(express.static(path.join(process.cwd(), 'public')));
+
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/device', deviceListRoutes);
+app.use('/api/device/connect', deviceConnectRoutes);
 
-export default app;
+export { app, server, io };

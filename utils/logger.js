@@ -5,7 +5,7 @@ import DailyRotateFile from 'winston-daily-rotate-file';
 import { format } from 'winston';
 import { format as formatDate } from 'date-fns';
 import fs from 'fs';
-
+ 
 // Get the directory name of the current module
 const __filename = fileURLToPath(import.meta.url); // Get the file path
 const __dirname = path.dirname(__filename); // Get the directory name
@@ -64,6 +64,3 @@ export const log = {
   error: (message) => logger.error(message),
   debug: (message) => logger.debug(message),
 };
-
-// Confirm logger initialization
-logger.info('Logger initialized successfully');

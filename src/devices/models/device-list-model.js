@@ -6,7 +6,8 @@ const deviceListSchema = new Schema({
     devicePhone : {type: String, required: true, unique: true},
     status : {type : String , enum : ['online','offline'], default : 'offline'},
     apiToken : {type : String, required : true},
-    user_id : {type : Schema.Types.ObjectId, ref : 'user'}, 
+    userId : {type : Schema.Types.ObjectId, ref : 'user', required: true}, 
+    sessionId: { type: String, ref: 'Session' },
 },{timestamps: true});
 
 const DeviceListModel=mongoose.model('device-list', deviceListSchema);
