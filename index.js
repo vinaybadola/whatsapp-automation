@@ -1,6 +1,7 @@
 import { port, environment } from './config/envConfig.js';
 import { app, server } from './app.js'; // Import app and server from app.js
 import { log } from './utils/logger.js';
+import multer from 'multer';
 
 const PORT = port || 5000;
 
@@ -21,7 +22,9 @@ app.use((err, req, res, next) => {
   next();
 });
 
-app.all('*', (req, res) => res.status(404).json({ message: 'No Matching Route' }));
+app.all('*', (req, res) => {
+  return res.status(404).json({ message: 'No Matching Route' });
+});
 
 // Handle uncaught exceptions and rejections
 process.on('uncaughtException', (err) => {

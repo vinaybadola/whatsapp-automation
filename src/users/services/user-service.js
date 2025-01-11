@@ -1,3 +1,4 @@
+import customRolesModel from "../models/custom-roles-model.js";
 export default class UserService {
   constructor(userRepository) {
     this.userRepository = userRepository;
@@ -60,4 +61,53 @@ export default class UserService {
 
     return updatedUser;
   }
+
+  async changeUserRole(userId, roleId){
+      // check if the user exist or markeed as status : true
+      const user = await this.userRepository.getUserById(userId);
+      if(!user || user.status !== true){
+        throw new Error('User not found');
+      }
+      // check if the role exist or marked as status : true
+      const role = await customRolesModel.findById(roleId);
+      if(!role || role.status !== true){
+        throw new Error('Role not found or marked as inactive or false!');
+      }
+      
+      // assing user role or change the user role according to new role 
+      const assignRole = await this.userRepository.updateUser(userId, {customRole: roleId});
+      if(!assignRole){
+        throw new Error('User role not updated');
+      }
+  }
+
+  async createRole(data){
+    const existingRole = await customRolesModel.findOne({name: data.name});
+    if(existingRole){
+      throw new Error('Role already exists');
+    }
+    const role = new customRolesModel(data);
+    const savedRole = await role.save();
+    if(!savedRole){
+      throw new Error('Role not created');
+    }
+  }
+
+  async updateRole(id, data) {
+    const role = await this.getRoleById(id);
+    if (!role) {
+      throw new Error('Role not found');
+    }
+    Object.assign(role, data);
+    return await role.save();
+  }
+
+  async getRoles(page, limit) {
+    return await customRolesModel.find().skip((page - 1) * limit).limit(limit);
+  }
+
+  async getRoleById(id){
+    return await customRolesModel.findById(id);
+  }
+
 }

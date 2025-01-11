@@ -1,6 +1,7 @@
 import UserService from '../services/user-service.js';
 import UserRepository from '../repositories/user-repository.js';
 import {log} from "../../../utils/logger.js";
+import { paginate, paginateReturn} from '../../../helpers/pagination.js';
 
 const userRepository = new UserRepository();
 
@@ -14,6 +15,7 @@ export default class UserController {
         try {
             const userId = req.user.id || req.user._id;
             const user = await this.userService.getUserById(userId);
+            user.password = undefined;
             if (!user) {
                 return res.status(404).json({ success: false, message: 'User not found' });
             }
@@ -47,5 +49,94 @@ export default class UserController {
             return res.status(500).json({ success: false, error: 'An unexpected error occurred' });
         }
     };
-    
+
+    changeUserRole = async(req,res) =>{
+        try{
+            const {userId, roleId} = req.body;
+            await this.userService.changeUserRole(userId, roleId);
+            return res.status(200).json({success: true, message: 'User role updated successfully '});
+        }
+        catch(err){
+            log.error(`An unexpected error occurred while changing user role: ${err.message}`);
+            if(err instanceof Error){
+                return res.status(400).json({success: false, error: err.message});
+            }
+            return res.status(500).json({ success: false, error: 'An unexpected error occurred ' });
+        }
+    }
+
+    createRole = async(req,res)=>{
+        try{
+            await this.userService.createRole(req.body);
+            return res.status(200).json({success: true, message: 'Role created successfully'});
+        }
+        catch(err){
+            log.error(`An unexpected error occurred while creating role: ${err.message}`);
+            if(err instanceof Error){
+                return res.status(400).json({ success: false, error: err.message });
+            }
+            return res.status(500).json({ success: false, error: `An unexpected error occurred while creating role : ${err.message}`  });
+        }
+    }
+
+    getAllRoles = async(req,res) =>{
+        try{
+            const {page = 1, limit = 10} = paginate(req);
+            const roles = await this.userService.getRoles(page, limit);
+            const totalItems = roles.length;
+            if(!totalItems){
+                return res.status(404).json({success: false, message: 'No roles found'});   
+            }
+            return res.status(200).json({success: true, message: 'Roles retrieved successfully',
+                data: roles,
+                pagination: {
+                    paginate : paginateReturn(page, limit, totalItems)
+                }
+            });
+        }
+        catch(err){
+            log.error(`An unexpected error occurred while getting all roles: ${err.message}`);
+            if(err instanceof Error){
+                return res.status(400).json({success: false, error: err.message});
+            }
+            return res.status(500).json({ success: false, error: `An unexpected error occurred : ${err.message}` });
+        }
+
+    }
+
+    getRoleById = async(req,res)=>{
+        try{
+            const id = req.params.id;
+            const role = await this.userService.getRoleById(id);
+            if(!role){
+                return res.status(404).json({success: false, message: 'Role not found'});
+            }
+            return res.status(200).json({success: true, message: 'Role retrieved successfully', data: role});
+        }
+        catch(err){
+            log.error(`An unexpected error occurred while getting role by id: ${err.message}`);
+            if(err instanceof Error){
+                return res.status(400).json({success: false, error: err.message});
+            }
+            return res.status(500).json({ success: false, error: `An unexpected error occurred while getting role by id : ${err.message}`  });
+        }
+    }
+
+    updateRole = async(req,res)=>{
+        try{
+            const id = req.params.id;
+            const role = await this.userService.updateRole(id, req.body);
+            if(!role){
+                return res.status(404).json({success: false, message: 'Role not found'});
+            }
+            return res.status(200).json({success: true, message: 'Role updated successfully', data: role});
+        }
+        catch(err){
+            log.error(`An unexpected error occurred while updating role: ${err.message}`);
+            if(err instanceof Error){
+                return res.status(400).json({success: false, error: err.message});
+            }
+            return res.status(500).json({ success: false, error: `An unexpected error occurred while updating role : ${err.message}`  });
+        }
+    }
 }

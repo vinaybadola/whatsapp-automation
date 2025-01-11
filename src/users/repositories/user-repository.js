@@ -2,7 +2,7 @@ import User from '../models/user-model.js';
 
 export default class UserRepository {
     async getUserById(userId) {
-        return await User.findById(userId);
+        return await User.findById(userId).populate('customRole', 'name');
     }
 
     async getUserByEmail(email) {
