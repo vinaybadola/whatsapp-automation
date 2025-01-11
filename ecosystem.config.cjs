@@ -3,7 +3,7 @@ module.exports = {
       {
         name: 'whatsapp-backend',
         script: 'index.js',
-        instances: 2,
+        instances: 1,
         watch: true, 
         ignore_watch: ['node_modules', 'logs', './package.json'], 
         log_date_format: "DD-MM HH:mm:ss Z",

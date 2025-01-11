@@ -9,8 +9,8 @@ export default class ConnectServices {
 
   async createWhatsAppClient(sessionId, io) {
     // Load session from database if it exists
-    const session = await Session.findOne({ sessionId });
-
+    const session = await Session.findOne({ socketessionId: sessionId });
+    
     // Use multi-file auth state for better session management
     const { state, saveCreds } = await useMultiFileAuthState(`./sessions/${sessionId}`);
 
@@ -24,7 +24,7 @@ export default class ConnectServices {
     client.ev.on('creds.update', async () => {
       await saveCreds();
       await Session.updateOne(
-        { sessionId },
+        { socketessionId: sessionId },
         { $set: { authState: state } },
         { upsert: true }
       );
@@ -68,7 +68,7 @@ export default class ConnectServices {
   }
 
   getClient(sessionId) {
-    return this.clients.get(sessionId); // Get a client by sessionId
+    return this.clients.get(sessionId); 
   }
 
   deleteClient(sessionId) {
