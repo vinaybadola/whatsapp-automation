@@ -29,8 +29,9 @@ export default class WhatsAppConnect {
     if (!sessionId || !phoneNumber || !message) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-
-    const client = this.connectServices.getClient(sessionId); // Use the service method
+    console.log('session-id', sessionId);
+    const client = this.connectServices.getClient(sessionId);
+    console.log('client>>', client);
     if (!client) {
       return res.status(404).json({ error: 'Session not found' });
     }

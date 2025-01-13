@@ -23,7 +23,7 @@ app.use((err, req, res, next) => {
 });
 
 app.all('*', (req, res) => {
-  return res.status(404).json({ message: 'No Matching Route' });
+  res.status(404).json({ message: 'No Matching Route' });
 });
 
 // Handle uncaught exceptions and rejections

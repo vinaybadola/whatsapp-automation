@@ -4,7 +4,7 @@ module.exports = {
         name: 'whatsapp-backend',
         script: 'index.js',
         instances: 1,
-        watch: true, 
+        exec_mode: 'fork',
         ignore_watch: ['node_modules', 'logs', './package.json'], 
         log_date_format: "DD-MM HH:mm:ss Z",
         log_type: "json",
@@ -19,7 +19,6 @@ module.exports = {
         },
         env_production: {
           NODE_ENV: 'production',
-          exec_mode: "cluster_mode",
         },
       },
     ],
