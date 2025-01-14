@@ -33,4 +33,8 @@ export default class UserRepository {
          _id: { $ne: id } 
       })
     }
+
+    async findOne(data){
+      return await User.findOne(data);
+    }
 }

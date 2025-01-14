@@ -6,7 +6,7 @@ const sessionSchema = new Schema({
     authState: { type: Object },
     qr_code: String,
     is_connected: {type : Boolean, default : false},
-    user_id: {type : Schema.Types.ObjectId},
+    user_id: {type : Schema.Types.ObjectId, ref: 'User'},
 }, {timestamps: true});
 
 export default mongoose.model('Session', sessionSchema);

@@ -9,5 +9,4 @@ const router = express.Router();
 router.post("/startSession", connectController.startSession);
 router.post("/send-message", connectController.sendMessage);
 
-
 export default router;

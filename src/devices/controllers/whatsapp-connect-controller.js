@@ -7,7 +7,7 @@ export default class WhatsAppConnect {
   }
 
   startSession = async (req, res) => {
-    const { sessionId } = req.body;
+    const { sessionId, } = req.body;
     const io = req.app.get('socketio');
 
     if (!sessionId) {
@@ -15,7 +15,10 @@ export default class WhatsAppConnect {
     }
 
     try {
-      await this.connectServices.createWhatsAppClient(sessionId, io);
+      // const userId = req.user.id || req.user._id;
+      const userId = "678619aa40269dc5850b5063";
+      const devicePhone = "919695215220";
+      await this.connectServices.createWhatsAppClient(sessionId, io,userId, devicePhone);
       return res.status(200).json({ success: '👍 true', message: 'Session started successfully' });
     } catch (error) {
       log.error(`An error occurred while starting WhatsApp session: ${error.message}`);
@@ -29,19 +32,37 @@ export default class WhatsAppConnect {
     if (!sessionId || !phoneNumber || !message) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    console.log('session-id', sessionId);
+    // console.log('session-id', sessionId);
     const client = this.connectServices.getClient(sessionId);
-    console.log('client>>', client);
+    // console.log('client>>', client);
     if (!client) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
     try {
-      const formattedNumber = `${phoneNumber}@s.whatsapp.net`;
+      const formattedNumber = `${this.formattingNumber(phoneNumber)}@s.whatsapp.net`;
       await client.sendMessage(formattedNumber, { text: message });
       res.status(200).json({ message: 'Message sent successfully' });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
   };
+
+  formattingNumber = (phoneNumber) => {
+    phoneNumber = phoneNumber.replace(/\D/g, '');
+
+    // Check if the number starts with "+91" and remove the "+"
+    if (phoneNumber.startsWith('91') && phoneNumber.length === 12) {
+        return phoneNumber; // Already in correct format
+    }
+
+    // If the number is 10 digits, prepend "91"
+    if (phoneNumber.length === 10) {
+        return `91${phoneNumber}`;
+    }
+
+    // If the number is not valid, throw an error
+    throw new Error('Invalid phone number format');
+
+  }
 }

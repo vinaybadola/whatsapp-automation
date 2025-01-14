@@ -8,6 +8,7 @@ const deviceListSchema = new Schema({
     apiToken : {type : String, required : true},
     userId : {type : Schema.Types.ObjectId, ref : 'user', required: true}, 
     sessionId: { type: String, ref: 'Session' },
+    reasonForDisconnect: {type : String}
 },{timestamps: true});
 
 const DeviceListModel=mongoose.model('device-list', deviceListSchema);
