@@ -1,6 +1,6 @@
 import ConnectServices from '../services/connectServices.js';
 import { log } from '../../../utils/logger.js';
-
+import sessionModel from '../models/session-model.js';
 export default class WhatsAppConnect {
   constructor() {
     this.connectServices = new ConnectServices();
@@ -33,6 +33,10 @@ export default class WhatsAppConnect {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     // console.log('session-id', sessionId);
+    
+    // fetch the user-id from session model
+    const getUser = await sessionModel.findOne({socketessionId : sessionId});
+    
     const client = this.connectServices.getClient(sessionId);
     // console.log('client>>', client);
     if (!client) {

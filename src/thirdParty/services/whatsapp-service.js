@@ -1,62 +1,64 @@
-// src/services/whatsapp-service.js
-import { launch } from 'puppeteer';
-import qrcode from 'qrcode';
-import Session from '../../devices/models/session-model.js';
+import { instanceId, wmateClientId, wmateClientSecret } from "../../../config/envConfig.js";
+import TransactionSchema from "../models/transactions-data-model.js";
+import {groupAdminNumber,groupName} from "../../../config/envConfig.js";
+export default class WhatsAppClient {
 
-let browser;
-let page;
+  async sendGroupMessage(data) {
 
-const initializeWhatsApp = async (io) => {
-  browser = await launch({ headless: false });
-  page = await browser.newPage();
-  await page.goto('https://web.whatsapp.com');
+    const message =
+    `
+      Name : ${data.name},
+      Phone : ${data.phone},
+      Email : ${data.email},
+      City : ${data.city},
+      Support Type : ${data.support_type},
+      Service Type : ${data.service_type}
+    `;
 
-  // Emit "Session started" event
-  io.emit('sessionUpdate', { status: 'Session started' });
+    const dataPayLoad = {
+      group_admin: groupAdminNumber,
+      group_name: groupName,
+      message,
+    };
 
-  return page;
-};
+    const url = `http://api.whatsmate.net/v3/whatsapp/group/text/message/${instanceId}`;
 
-const getQRCode = async (sessionId, io) => {
-  try {
-    await page.waitForSelector('canvas');
-    const qrCodeData = await page.evaluate(() => {
-      const canvas = document.querySelector('canvas');
-      return canvas.toDataURL();
+    const headers = {
+      "Content-Type": "application/json",
+      "X-WM-CLIENT-ID": wmateClientId,
+      "X-WM-CLIENT-SECRET": wmateClientSecret,
+    };
+
+    const transaction = new TransactionSchema({
+      groupAdmin: dataPayLoad.group_admin,
+      groupName: dataPayLoad.group_name,
+      message: dataPayLoad.message,
+      instanceId,
+      isSent: "false",
     });
 
-    await Session.create({ sessionId, qrCode: qrCodeData });
+    try{
 
-    io.emit('sessionUpdate', { status: 'QR code generated', qrCode: qrCodeData });
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(dataPayLoad),
+      });
 
-    return qrCodeData;
-  } catch (error) {
-    io.emit('sessionUpdate', { status: 'QR code expired' });
-    throw new Error('Failed to generate QR code');
+      const responseData = await response.text();
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      transaction.isSent = "true";
+      transaction.apiResponse = responseData;
+    }
+    catch(err){
+      transaction.errorMessage = err.message;
+      console.error("Error:", err);
+    }
+    finally{
+      await transaction.save();
+    }
   }
-};
-
-const checkConnectionStatus = async (sessionId, io) => {
-  try {
-    await page.waitForNavigation();
-    const isConnected = await page.evaluate(() => {
-      return !!document.querySelector('div[data-testid="chat-list"]');
-    });
-
-    // Update session status in the database
-    await Session.findOneAndUpdate({ sessionId }, { isConnected });
-
-    // Emit "User connected" event
-    io.emit('sessionUpdate', { status: 'User connected' });
-
-    return isConnected;
-  } catch (error) {
-    throw new Error('Failed to check connection status');
-  }
-};
-
-export default {
-  initializeWhatsApp,
-  getQRCode,
-  checkConnectionStatus,
-};
+}
