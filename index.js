@@ -50,3 +50,19 @@ server.listen(PORT, (err) => {
     process.exit(1);
   }
 });
+
+process.on('SIGINT', () => {
+  log.info('SIGINT received. Shutting down gracefully...');
+  server.close(() => {
+    log.info('Server closed.');
+    process.exit(0);
+  });
+});
+
+process.on('SIGTERM', () => {
+  log.info('SIGTERM received. Shutting down gracefully...');
+  server.close(() => {
+    log.info('Server closed.');
+    process.exit(0);
+  });
+});

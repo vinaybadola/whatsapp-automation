@@ -3,6 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io'; 
 import connectDB from './config/database.js';
 import securityMiddleware from './middlewares/security-middleware.js';
+import { processMessages } from './config/process-message.js';
 import path from 'path';
 
 // Import routes
@@ -16,7 +17,7 @@ const app = express();
 const server = http.createServer(app); 
 const io = new Server(server);
 
-connectDB();
+await connectDB();
 
 securityMiddleware(app);
 
@@ -34,8 +35,11 @@ io.on('connection', (socket) => {
       console.error('Socket error:', err);
     });
   });
+
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(express.static(path.join(process.cwd(), 'public')));
+
+processMessages();
 
 // Routes
 app.use('/api/auth', authRoutes);

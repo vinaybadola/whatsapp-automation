@@ -16,6 +16,7 @@
     "@adiwajshing/baileys": "^5.0.0",
     "@whiskeysockets/baileys": "^6.7.9",
     "bcryptjs": "^2.4.3",
+    "bull": "^4.16.5",
     "compression": "^1.7.5",
     "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.7",
