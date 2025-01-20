@@ -4,7 +4,7 @@ import Session from "../models/session-model.js";
 import DeviceListModel from '../models/device-list-model.js';
 import Message from '../../messages/models/message-data-model.js';
 import messageQueue from '../../../config/queue.js';
-
+import fs from 'fs';
 class ConnectServices {
   constructor() {
     this.clients = new Map();
@@ -63,7 +63,6 @@ class ConnectServices {
 
       client.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
-
         if (qr && mode === 'qr') {
           try {
             qrcode.generate(qr, { small: true }, (qrcode) => {
@@ -83,25 +82,35 @@ class ConnectServices {
           } else {
             try {
               this.clients.delete(sessionId);
+              const sessionPath = `./sessions/${sessionId}`;
+              await fs.promises.rm(sessionPath, { recursive: true, force: true });
+
+              await Session.deleteOne({ socketessionId: sessionId });
+              io.to(sessionId).emit('logout-success');
+
+              mode = 'qr';
+              this.createWhatsAppClient(sessionId, io, userId, null, mode);
+
               if (devicePhone !== null) {
                 await DeviceListModel.updateOne(
                   { devicePhone },
                   { $set: { status: 'offline', reasonForDisconnect: DisconnectReason.loggedOut } }
                 );
               }
-              await Session.deleteOne({ socketessionId: sessionId });
             } catch (error) {
               console.error('Error handling logout or session during connection close :', error);
             }
           }
         } else if (connection === 'open') {
           try {
-            if (devicePhone !== null) {
-              await DeviceListModel.updateOne(
-                { devicePhone },
-                { $set: { status: 'online' } }
-              );
-              io.to(sessionId).emit('connected', 'Device connected successfully!');
+            if(mode === 'qr'){
+              if (devicePhone !== null) {
+                await DeviceListModel.updateOne(
+                  { devicePhone },
+                  { $set: { status: 'online' } }
+                );
+                io.to(sessionId).emit('connected', 'Device connected successfully!');
+              }
             }
           } catch (error) {
             console.error('Error updating device status to online:', error);
@@ -152,7 +161,7 @@ class ConnectServices {
     this.clients.delete(sessionId);
   }
 
-  async sendMessageGroup(sessionId, groupId, messageContent, userId, mode) {
+  async sendMessageGroup(sessionId, io, groupId, messageContent, userId, mode) {
     try {
       if (!groupId) throw new Error('Group JID is required.');
       if (!messageContent) throw new Error('Message content is required.');
@@ -183,15 +192,13 @@ class ConnectServices {
     }
   }
 
-  async sendIndividualMessage(sessionId, io, userId, phoneNumber, messageContent, mode) {
+  async sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, message, mode) {
     try {
-      // const client = await this.getClient(sessionId, io, userId, mode); // check for this line too 
-      // if (!client) throw new Error('Session not found.');
 
       const message = new Message({
         sessionId,
         senderId: userId,
-        phoneNumber,
+        phoneNumber: formattedPhoneNumber,
         status: 'pending',
         sentVia: 'individual',
         message: messageContent,
@@ -200,7 +207,7 @@ class ConnectServices {
 
       await messageQueue.add('sendMessage', {
         sessionId,
-        phoneNumber,
+        phoneNumber : formattedPhoneNumber,
         messageContent,
         messageId: message._id,
         mode
@@ -213,16 +220,39 @@ class ConnectServices {
     }
   }
 
-  async fetchGroupId(sessionId, io, userId){
+  async fetchGroups(sessionId) {
     try {
-      const client = await this.getClient(sessionId, io, userId);
-      if (!client) throw new Error('Session not found.');
-    }
-    catch(error){
-      console.error('Error fetching group id:', error);
-      throw new Error(error.message);
+      const client = this.clients.get(sessionId);
+      if (!client) {
+        throw new Error('Session not found.');
+      }
+  
+      const groups = await client.groupFetchAllParticipating();
+      return Object.values(groups).map((group) => ({
+        id: group.id,
+        name: group.subject,
+      }));
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      throw new Error(`Failed to fetch groups: ${error.message}`);
     }
   }
+
+  // async logout(sessionId) {
+  //   try {
+  //     const sessionPath = `./sessions/${sessionId}`;
+  //     await fs.promises.rm(sessionPath, { recursive: true, force: true });
+  
+  //     await Session.deleteOne({ socketessionId: sessionId });
+  
+  //     this.clients.delete(sessionId);
+  
+  //     return { success: true, message: 'Logged out successfully' };
+  //   } catch (error) {
+  //     console.error('Error during logout:', error);
+  //     throw new Error(`Failed to logout: ${error.message}`);
+  //   }
+  // }
 }
 
 export const connectServices = new ConnectServices();

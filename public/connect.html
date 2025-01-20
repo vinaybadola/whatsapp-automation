@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Client</title>
+</head>
+<body>
+  <div id="app">
+    <button id="start-session">Start Session</button>
+    <pre id="qr-code"></pre>   
+    <div id="profileContainer" style="display: none;">
+      <img src="./assets/user-profile.jpeg" alt="Profile Picture" />
+      <p id="phoneNumber"></p>
+    </div>
+     <div id="status"></div>
+    <input type="text" id="phone-number" placeholder="Phone Number">
+    <input type="text" id="message" placeholder="Message">
+    <button id="send-message">Send Message</button>
+    <button id = "logout">Logout</button>
+    <div id="fetch-group">
+      <button id="fetch-groups">Fetch Groups</button>
+      <div id="groups"></div>
+    </div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="./js//connect.js"></script>
+</body>
+</html>

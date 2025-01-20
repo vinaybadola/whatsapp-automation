@@ -16,8 +16,6 @@ export async function processMessages() {
       return 'Missing job data';
     }
     const { sessionId, phoneNumber, messageContent, messageId, userId, mode } = job.data;
-    console.log('Processing job with data:', job.data);
-
     try {
       const client = await connectServices.getClient(sessionId, null, userId, mode);
       if (!client) {
@@ -26,8 +24,6 @@ export async function processMessages() {
 
       const formattedNumber = `${phoneNumber}@s.whatsapp.net`;
       await client.sendMessage(formattedNumber, { text: messageContent });
-      console.log('Message sent successfully');
-
       await Message.findByIdAndUpdate(messageId, { status: 'sent' });
     } catch (error) {
       console.error('Job failed:', error.message);
