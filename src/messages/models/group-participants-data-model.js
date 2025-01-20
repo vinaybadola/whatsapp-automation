@@ -2,14 +2,14 @@ import mongoose from "mongoose";
 const {Schema} = mongoose;
 
 const GroupParticipantsSchema = new Schema({
-    userId : {type : Schema.Types.ObjectId, ref: 'User', required: true, index: true},
-    participants: [
-        {
-          phoneNumber: { type: String, required: true }, // Participant's phone number
-          name: { type: String }, // Participant's name (if available)
-        },
-      ],
+    groupId : {type : Schema.Types.ObjectId, ref: 'user-group'},
+    userId : {type : Schema.Types.ObjectId, ref: 'user', required: true, index : true},
+    phoneNumber: { type: String, required: true, match: /^\+\d{1,15}$/ },
+    name: { type: String },
+    email: { type: String },
 }, {timestamps: true});
+
+groupParticipantSchema.index({ groupId: 1 });
 
 const GroupParticipants = mongoose.model('group-participants', GroupParticipantsSchema);
 
