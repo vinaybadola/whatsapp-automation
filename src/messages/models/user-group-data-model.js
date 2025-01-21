@@ -3,7 +3,7 @@ const {Schema} = mongoose;
 
 const userGroupSchema = new Schema({
     groupName : {type : String, required: true}, // group name from whatsapp
-    groupId : {type : String, unique: true, sparse: true}, // group id from whatsapp 
+    groupjid : {type : String, unique: true, sparse: true}, // group id from whatsapp 
     userId : {type : Schema.Types.ObjectId, ref: 'User', required: true, index: true}, // user who created the group
     isCustomGroup: { type: Boolean, default: false }, // Flag to indicate a custom group
 }, {timestamps: true});

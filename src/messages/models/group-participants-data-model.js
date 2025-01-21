@@ -9,7 +9,7 @@ const GroupParticipantsSchema = new Schema({
     email: { type: String },
 }, {timestamps: true});
 
-groupParticipantSchema.index({ groupId: 1 });
+GroupParticipantsSchema.index({ groupId: 1 });
 
 const GroupParticipants = mongoose.model('group-participants', GroupParticipantsSchema);
 
