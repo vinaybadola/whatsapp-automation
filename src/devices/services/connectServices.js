@@ -238,21 +238,6 @@ class ConnectServices {
     }
   }
 
-  // async logout(sessionId) {
-  //   try {
-  //     const sessionPath = `./sessions/${sessionId}`;
-  //     await fs.promises.rm(sessionPath, { recursive: true, force: true });
-  
-  //     await Session.deleteOne({ socketessionId: sessionId });
-  
-  //     this.clients.delete(sessionId);
-  
-  //     return { success: true, message: 'Logged out successfully' };
-  //   } catch (error) {
-  //     console.error('Error during logout:', error);
-  //     throw new Error(`Failed to logout: ${error.message}`);
-  //   }
-  // }
 }
 
 export const connectServices = new ConnectServices();

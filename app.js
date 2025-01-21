@@ -12,6 +12,7 @@ import userRoutes from './src/users/routes/user-route.js';
 import deviceListRoutes from './src/devices/routes/device-list-route.js';
 import deviceConnectRoutes from './src/devices/routes/device-connect-route.js';
 import thirdPartyRoutes from "./src/thirdParty/routes/third-party-route.js";
+import templateRoutes from "./src/templates/routes/template-route.js";
 
 const app = express();
 const server = http.createServer(app); 
@@ -47,5 +48,6 @@ app.use('/api/user', userRoutes);
 app.use('/api/device', deviceListRoutes);
 app.use('/api/device/connect', deviceConnectRoutes);
 app.use("/api/third-party",thirdPartyRoutes);
+app.use("/api/template", templateRoutes);
 
 export { app, server, io };
