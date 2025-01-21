@@ -2,6 +2,9 @@ const socket = io('http://localhost:8000');
 
 socket.on('connect', () => {
   console.log('Connected to WebSocket server with socket ID:', socket.id);
+  document.getElementById('status').textContent = " ";
+  document.getElementById('start-session').disabled = false;
+  document.getElementById('send-message').disabled = true;
 });
 
 let sessionId;
@@ -94,6 +97,7 @@ socket.on('logout-success', () => {
   console.log('Logged out successfully.');
   document.getElementById('start-session').disabled = false;
   document.getElementById('send-message').disabled = true;
+  localStorage.removeItem('sessionId');
   document.getElementById('status').textContent = 'Logged out. Please scan the QR code to reconnect.';
   location.reload();
 });

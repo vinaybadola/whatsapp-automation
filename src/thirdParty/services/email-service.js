@@ -12,34 +12,30 @@ export default class Email {
      * name and number replaced with actual values from the provided data.
      */
     async PrepareMailTemplate(data) {
-        const { name, number, templateType } = data;
+        const { name, phoneNumber, templateType } = data;
         const fetchTemplate = await Template.findOne({ templateType: templateType, isActive: true });
 
         if (!fetchTemplate) {
             console.log(`No active Template found for sending mail to user of type :  ${templateType}`);
             throw new Error('Template not found');
         }
-        const template = fetchTemplate.template.replace(/{{name}}/g, name).replace(/{{number}}/g, number);
+        const template = fetchTemplate.template.replace(/{{name}}/g, name).replace(/{{number}}/g, phoneNumber);
         const subject = fetchTemplate.subject;
         return {template, subject};
     }
 
-    /**
-     * Sends a notification email using Nodemailer.
-     *
-     * @param {Object} detailsData - The details of the email to be sent.
-     * @param {string} detailsData.to - The recipient's email address.
-     * @param {string} [detailsData.subject] - The subject of the email. Defaults to 'Notification' if not provided.
-     * @param {string} template - The content of the email. Can be plain text or HTML.
-     *
-     * @returns {Promise<void>} - A promise that resolves when the email is sent successfully.
-     *
-     * @throws {Error} - Throws an error if there is an issue sending the email.
-     */
+   /**
+    * The function `sendNotificationMail` sends an email notification using SMTP with provided data and
+    * template.
+    * @param data - The `data` parameter in the `sendNotificationMail` function likely contains
+    * information needed to send the notification email. This could include details such as the
+    * recipient's email address (`data.mail`), and any other relevant data required to populate the
+    * email template and subject.
+    */
     async sendNotificationMail(data) {
         try {
             // Determine if the connection should be secure based on the port
-            const isSecure = this.config.smtpPort === 465;
+            const isSecure = smtpPort === 465 || smtpPort === 587;
 
             const transporter = createTransport({
                 host: smtpHost,
@@ -54,7 +50,7 @@ export default class Email {
             const {template, subject} = await this.PrepareMailTemplate(data);
 
             const mailOptions = {
-                from: `"${smptFrom}" <${adminMail}>`,
+                from: `"${smptFrom }" <${adminMail}>`,
                 to: data.mail,
                 subject: subject || 'Alert Notification',
                 text: template, // 'text' for plain text emails or 'html' for HTML emails
@@ -62,7 +58,6 @@ export default class Email {
 
             const info = await transporter.sendMail(mailOptions);
             console.log(`Email sent successfully : ${info.response}`);
-
         } catch (error) {
             console.error(`Error sending mail: ${error.message}`);
             // throw new Error(`Error sending mail: ${error.message}`);  keep this in comment to avoid breaking the code
