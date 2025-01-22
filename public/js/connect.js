@@ -1,28 +1,34 @@
 const socket = io('http://localhost:8000');
 
+// Check if a session is already active on page load
+const sessionId = localStorage.getItem('sessionId');
+const isConnected = localStorage.getItem('isConnected');
+
+if (isConnected && sessionId) {
+  // User is already connected
+  document.getElementById('start-session').disabled = true;
+  document.getElementById('send-message').disabled = false;
+  document.getElementById('qr-code').style.display = 'none';
+  document.getElementById('status').textContent = 'You are connected!';
+  document.getElementById('profileContainer').style.display = 'block';
+} else {
+  // User is not connected
+  document.getElementById('start-session').disabled = false;
+  document.getElementById('send-message').disabled = true;
+  document.getElementById('qr-code').style.display = 'block';
+  document.getElementById('status').textContent = 'Please start a session.';
+}
+
 socket.on('connect', () => {
   console.log('Connected to WebSocket server with socket ID:', socket.id);
   document.getElementById('status').textContent = " ";
-  document.getElementById('start-session').disabled = false;
-  document.getElementById('send-message').disabled = true;
 });
-
-let sessionId;
-
-document.getElementById('send-message').disabled = true;
 
 document.getElementById('start-session').addEventListener('click', () => {
   console.log('Starting session with ID:', socket.id);
-  if(localStorage.getItem('sessionId')){
-    sessionId = localStorage.getItem('sessionId');
-  }
-  else{
-    sessionId = socket.id;
-    localStorage.setItem('sessionId', sessionId);
-  }
+  let sessionId = localStorage.getItem('sessionId') || socket.id;
+  localStorage.setItem('sessionId', sessionId);
 
-  // sessionId = Number("reignahBxcMCHD8aAAAD");
-  // set into localstorage
   fetch('/api/device/connect/startSession', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -33,20 +39,17 @@ document.getElementById('start-session').addEventListener('click', () => {
       console.log(data.message);
       document.getElementById('start-session').disabled = true;
       document.getElementById('send-message').disabled = false;
+      localStorage.setItem('isConnected', 'true'); // Mark session as connected
     })
     .catch((error) => console.error(error));
 });
 
 socket.on('qr-code', (qr) => {
-  console.log('Received QR Code:', qr);  
   document.getElementById('qr-code').textContent = qr;
 });
 
-socket.on('connected', (message) => {
-  document.getElementById('status').textContent = message;
-});
-
 document.getElementById('send-message').addEventListener('click', () => {
+  const sessionId = localStorage.getItem('sessionId');
   // Ensure sessionId is set
   if (!sessionId) {
     console.error('Session not started. Please start the session first.');
@@ -80,17 +83,11 @@ document.getElementById('send-message').addEventListener('click', () => {
     });
 });
 
-document.getElementById('logout').addEventListener('click', () => {
-  const sessionId = localStorage.getItem('sessionId');
-  
-  if(sessionId){
-    localStorage.removeItem('sessionId');
-    socket.emit('logout', { sessionId });
-    localStorage.removeItem('sessionId');
-    document.getElementById('qr-code').textContent = '';
-    document.getElementById('status').textContent = 'Logged out. Please scan the QR code to reconnect.';    
-  }
-  
+socket.on('connected', (message) => {
+  document.getElementById('status').textContent = message;
+  document.getElementById('qr-code').style.display = 'none';
+  document.getElementById('profileContainer').style.display = 'block';
+  localStorage.setItem('isConnected', 'true'); // Mark session as connected
 });
 
 socket.on('logout-success', () => {
@@ -98,10 +95,39 @@ socket.on('logout-success', () => {
   document.getElementById('start-session').disabled = false;
   document.getElementById('send-message').disabled = true;
   localStorage.removeItem('sessionId');
+  localStorage.removeItem('isConnected'); // Clear connection state
   document.getElementById('status').textContent = 'Logged out. Please scan the QR code to reconnect.';
   location.reload();
 });
 
+document.getElementById('logout').addEventListener('click', () => {
+  console.log('logging out...');
+  const sessionId = localStorage.getItem('sessionId');
+  if(!sessionId){
+    console.log('No session ID found in local storage.');
+    return;
+  }
+
+  fetch('/api/device/connect/logout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId }),
+  })
+
+  .then((response) => response.json())
+  .then((data) => {
+    console.log(data.message);
+    document.getElementById('start-session').disabled = false;
+    document.getElementById('send-message').disabled = true;
+    localStorage.removeItem('sessionId');
+    localStorage.removeItem('isConnected'); // Clear connection state
+    document.getElementById('status').textContent = 'Logged out. Please scan the QR code to reconnect.';
+    location.reload();
+  })
+  .catch((error) => {
+    console.error('Error during logout:', error);
+  });  
+});
 
 document.getElementById('fetch-groups').addEventListener('click', () => {
   const sessionId = localStorage.getItem('sessionId');
@@ -126,31 +152,4 @@ document.getElementById('fetch-groups').addEventListener('click', () => {
     });
   })
   .catch((error) => console.error(error));
-});
-
-socket.on('disconnected', () => {
-  document.getElementById('status').textContent = 'Disconnected. Please scan the QR code again.';
-});
-
-socket.on('connect_error', (error) => {
-  console.error('Connection error:', error);
-  document.getElementById('status').textContent = 'Connection error. Please scan the QR code again.';
-});
-
-socket.on('connect_timeout', () => {
-  console.error('Connection timeout.');
-  // calls the backend to generate new qr 
-  document.getElementById('status').textContent = 'Connection timeout. Please scan the QR code again.';
-});
-
-socket.on('connected', (message) => {
-  document.getElementById('status').textContent = message;
-  document.getElementById('qr-code').style.display = 'none';
-  document.getElementById('profileContainer').style.display = 'block';
-});
-
-socket.on('disconnected', () => {
-  document.getElementById('status').textContent = 'Disconnected. Please scan the QR code again.';
-  document.getElementById('qr-code').style.display = 'block';
-  document.getElementById('profileContainer').style.display = 'none';
 });

@@ -104,24 +104,31 @@ export default class WhatsAppConnect {
     }
   };
 
-  // logout = async (req, res) => {
-  //   try {
-  //     const { sessionId } = req.body;
+  logout = async (req, res) => {
+    try {
+      const { sessionId } = req.body;
 
-  //     if (!sessionId) {
-  //       return res.status(400).json({ success: false, error: 'Session ID is required' });
-  //     }
+      if (!sessionId) {
+        return res.status(400).json({ success: false, error: 'Session ID is required' });
+      }
   
-  //     const io = req.app.get('socketio');
-  //     await connectServices.logout(sessionId);
-  //     io.to(sessionId).emit('logout-success');
-  //     return res.status(200).json({ success: true, message: 'Logged out successfully' });
-  //   } catch (err) {
-  //     console.log('An error occurred while logging out:', err);
-  //     if(err instanceof Error){
-  //       return res.status(400).json({ success: false, error: err.message });
-  //     }
-  //     return res.status(500).json({ success: false, error: `An error occurred while logging out: ${err.message}` });
-  //   }
-  // };
+      const io = req.app.get('socketio');
+
+      const logout = await connectServices.logout(sessionId, io);
+      if(!logout){
+        return res.status(400).json({ success: false, error: 'Failed to logout or client already logged out' });
+      }
+
+      io.to(sessionId).emit('logout-success');
+
+      return res.status(200).json({ success: true, message: 'Logged out successfully' });
+
+    } catch (err) {
+      console.log('An error occurred while logging out:', err);
+      if(err instanceof Error){
+        return res.status(400).json({ success: false, error: err.message });
+      }
+      return res.status(500).json({ success: false, error: `An error occurred while logging out: ${err.message}` });
+    }
+  };
 }

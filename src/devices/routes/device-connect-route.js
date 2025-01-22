@@ -10,5 +10,6 @@ router.post("/startSession", connectController.startSession);
 router.post("/send-message", connectController.sendMessage);
 router.post("/send-message-group", connectController.sendMessageOnGroup);
 router.post("/fetch-groups", connectController.fetchGroups);
+router.post("/logout", connectController.logout);
 
 export default router;
