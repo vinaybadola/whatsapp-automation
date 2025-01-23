@@ -5,18 +5,17 @@ const sessionId = localStorage.getItem('sessionId');
 const isConnected = localStorage.getItem('isConnected');
 
 if (isConnected && sessionId) {
-  // User is already connected
   document.getElementById('start-session').disabled = true;
   document.getElementById('send-message').disabled = false;
   document.getElementById('qr-code').style.display = 'none';
   document.getElementById('status').textContent = 'You are connected!';
   document.getElementById('profileContainer').style.display = 'block';
 } else {
-  // User is not connected
   document.getElementById('start-session').disabled = false;
   document.getElementById('send-message').disabled = true;
   document.getElementById('qr-code').style.display = 'block';
   document.getElementById('status').textContent = 'Please start a session.';
+  document.getElementById("fetch-groups").disabled = true;
 }
 
 socket.on('connect', () => {

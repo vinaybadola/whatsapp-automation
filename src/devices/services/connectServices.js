@@ -84,9 +84,9 @@ class ConnectServices {
             }, 5000);
           } else {
             try {
-              this.clients.delete(sessionId);
-
               await this.logout(sessionId, io);
+              
+              this.clients.delete(sessionId);
               // mode = 'qr';
               // this.createWhatsAppClient(sessionId, io, userId, null, mode);
 
