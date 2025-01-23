@@ -17,7 +17,6 @@ const userSchema = new Schema(
     status: { type: Boolean, default: true },
     userName: { type: String, required: true, unique: true, trim: true },
     profileImage: { type: String },
-    customRole : {type: Schema.Types.ObjectId, ref : 'customr-roles-schema'},
     tokens: [{ token: { type: String } }],
   },
   { timestamps: true }

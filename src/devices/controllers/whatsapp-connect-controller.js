@@ -16,11 +16,19 @@ export default class WhatsAppConnect {
     }
 
     try {
-      // const userId = req.user.id || req.user._id;
-      const userId = "678619aa40269dc5850b5063";
+    const userId = req.user?.id || req.user?._id || "678619aa40269dc5850b5063";     
+    if(!userId){
+        userId = "678619aa40269dc5850b5063";  //TODO: remove this line after when frontend created
+      }
+      const userData = {
+        userId,
+        phoneNumber : sessionId,
+        name: req.user?.name || req.user?.username || "Example User",
+        email: req.user?.email || "botvinay416@gmail.com"
+      }
       const devicePhone = "919695215220";
       let mode = "qr";
-      await connectServices.createWhatsAppClient(sessionId, io,userId, devicePhone, mode);
+      await connectServices.createWhatsAppClient(sessionId, io,userId, devicePhone, mode, userData);
       return res.status(200).json({ success: '👍 true', message: 'Session started successfully' });
     } catch (error) {
       log.error(`An error occurred while starting WhatsApp session: ${error.message}`);
@@ -31,6 +39,7 @@ export default class WhatsAppConnect {
   sendMessage = async (req, res) => {
     try {
     const { sessionId, phoneNumber, message } = req.body;
+    const messageContent = message;
     const io = req.app.get('socketio');
 
     if (!sessionId || !phoneNumber || !message) {
@@ -48,7 +57,7 @@ export default class WhatsAppConnect {
       userId = "678619aa40269dc5850b5063"; 
     }  
     const mode = "message-processing";
-    await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, message, mode);
+    await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode);
       res.status(200).json({ message: 'Message is queued for sending' });
     }catch (error) {
       console.error('An error occurred while sending message in the controller :', error);
@@ -62,9 +71,10 @@ export default class WhatsAppConnect {
       if(!groupId || !message || !sessionId){
         return res.status(400).json({success: false, error: 'Missing required fields'});
       }
-      const userId = req.user.id || req.user._id || "678619aa40269dc5850b5063"; //TODO: add the middleware and remove this hardcoded text
+      const userId = req.user?.id || req.user?._id || "678619aa40269dc5850b5063"; //TODO: add the middleware and remove this hardcoded text
       const mode = "message-processing";
-      const response = await connectServices.sendMessageGroup(sessionId,groupId,message,userId,mode);
+      const io = req.app.get('socketio');
+      const response = await connectServices.sendMessageGroup(sessionId,io,groupId,message,userId,mode);
       return res.status(200).json({ success: true, message: response.message });
     }
     catch(err){
@@ -94,24 +104,31 @@ export default class WhatsAppConnect {
     }
   };
 
-  // logout = async (req, res) => {
-  //   try {
-  //     const { sessionId } = req.body;
+  logout = async (req, res) => {
+    try {
+      const { sessionId } = req.body;
 
-  //     if (!sessionId) {
-  //       return res.status(400).json({ success: false, error: 'Session ID is required' });
-  //     }
+      if (!sessionId) {
+        return res.status(400).json({ success: false, error: 'Session ID is required' });
+      }
   
-  //     const io = req.app.get('socketio');
-  //     await connectServices.logout(sessionId);
-  //     io.to(sessionId).emit('logout-success');
-  //     return res.status(200).json({ success: true, message: 'Logged out successfully' });
-  //   } catch (err) {
-  //     console.log('An error occurred while logging out:', err);
-  //     if(err instanceof Error){
-  //       return res.status(400).json({ success: false, error: err.message });
-  //     }
-  //     return res.status(500).json({ success: false, error: `An error occurred while logging out: ${err.message}` });
-  //   }
-  // };
+      const io = req.app.get('socketio');
+
+      const logout = await connectServices.logout(sessionId, io);
+      if(!logout){
+        return res.status(400).json({ success: false, error: 'Failed to logout or client already logged out' });
+      }
+
+      io.to(sessionId).emit('logout-success');
+
+      return res.status(200).json({ success: true, message: 'Logged out successfully' });
+
+    } catch (err) {
+      console.log('An error occurred while logging out:', err);
+      if(err instanceof Error){
+        return res.status(400).json({ success: false, error: err.message });
+      }
+      return res.status(500).json({ success: false, error: `An error occurred while logging out: ${err.message}` });
+    }
+  };
 }

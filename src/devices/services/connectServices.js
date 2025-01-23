@@ -5,10 +5,13 @@ import DeviceListModel from '../models/device-list-model.js';
 import Message from '../../messages/models/message-data-model.js';
 import messageQueue from '../../../config/queue.js';
 import fs from 'fs';
+import Email from '../../thirdParty/services/email-service.js';
+import User from '../../users/models/user-model.js';
 class ConnectServices {
   constructor() {
     this.clients = new Map();
     this.promises = new Map();
+    this.email = new Email();
   }
 
   async createWhatsAppClient(sessionId, io, userId, devicePhone = null, mode = 'qr') {
@@ -81,15 +84,18 @@ class ConnectServices {
             }, 5000);
           } else {
             try {
+              await this.logout(sessionId, io);
+              
               this.clients.delete(sessionId);
-              const sessionPath = `./sessions/${sessionId}`;
-              await fs.promises.rm(sessionPath, { recursive: true, force: true });
+              // mode = 'qr';
+              // this.createWhatsAppClient(sessionId, io, userId, null, mode);
 
-              await Session.deleteOne({ socketessionId: sessionId });
-              io.to(sessionId).emit('logout-success');
-
-              mode = 'qr';
-              this.createWhatsAppClient(sessionId, io, userId, null, mode);
+              if (devicePhone !== null) {
+                await DeviceListModel.updateOne(
+                  { devicePhone },
+                  { $set: { status: 'offline', reasonForDisconnect: DisconnectReason.loggedOut } }
+                );
+              }
 
               if (devicePhone !== null) {
                 await DeviceListModel.updateOne(
@@ -103,7 +109,7 @@ class ConnectServices {
           }
         } else if (connection === 'open') {
           try {
-            if(mode === 'qr'){
+            if (mode === 'qr') {
               if (devicePhone !== null) {
                 await DeviceListModel.updateOne(
                   { devicePhone },
@@ -178,11 +184,12 @@ class ConnectServices {
 
       await messageQueue.add('sendMessage', {
         sessionId,
-        groupId,
+        phoneNumber: groupId,
         messageContent,
         messageId: message._id,
         userId,
         mode,
+        sentVia: 'group',
       });
 
       return { success: true, message: `Message has been queued ${groupId}` };
@@ -192,7 +199,7 @@ class ConnectServices {
     }
   }
 
-  async sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, message, mode) {
+  async sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode) {
     try {
 
       const message = new Message({
@@ -207,10 +214,11 @@ class ConnectServices {
 
       await messageQueue.add('sendMessage', {
         sessionId,
-        phoneNumber : formattedPhoneNumber,
+        phoneNumber: formattedPhoneNumber,
         messageContent,
         messageId: message._id,
-        mode
+        mode,
+        sentVia: 'individual',
       });
 
       // return client;
@@ -226,7 +234,7 @@ class ConnectServices {
       if (!client) {
         throw new Error('Session not found.');
       }
-  
+
       const groups = await client.groupFetchAllParticipating();
       return Object.values(groups).map((group) => ({
         id: group.id,
@@ -238,6 +246,86 @@ class ConnectServices {
     }
   }
 
+  async logout(sessionId, io) {
+    const client = this.clients.get(sessionId);
+    if (!client) {
+      console.error('Client not found for session:', sessionId);
+      return;
+    }
+
+    await client.logout();
+
+    const sessionPath = `./sessions/${sessionId}`;
+    await fs.promises.rm(sessionPath, { recursive: true, force: true });
+
+    try {
+      // Fetch session
+      const sessionData = await Session.findOne({ socketessionId: sessionId });
+      if (!sessionData) {
+        console.error("Session not found:", sessionId);
+        throw new Error("Session not found");
+      }
+      // Fetch device
+      const sendMailDevice = await DeviceListModel.findOne({ sessionId: sessionData._id });
+      if (!sendMailDevice) {
+        console.error("Device not found for session:", sessionId);
+        throw new Error("Device not found");
+      }
+
+      // Fetch user
+      const userData = await User.findOne({ _id: sessionData.user_id });
+      if (!userData) {
+        console.error("User not found for session:", sessionId);
+        throw new Error("User not found");
+      }
+
+      const data = {
+        userId: userData._id,
+        phoneNumber: sendMailDevice.devicePhone,
+        name: userData.name || "Example User",
+        mail: "botvinay416@gmail.com" || userData.email,
+        templateType: "device-logout"
+      };
+
+      // Send email notification
+      await this.email.sendNotificationMail(data);
+
+      // Update device status
+      await DeviceListModel.updateOne(
+        { devicePhone: sendMailDevice.devicePhone },
+        { $set: { status: 'offline', reasonForDisconnect: DisconnectReason.loggedOut } },
+      );
+
+      // Delete the session
+      await Session.deleteOne({ socketessionId: sessionId });
+
+      io.to(sessionId).emit('logout-success');
+
+    } catch (error) {
+      console.error("error occuredd while sending mail :", error.message);
+    }
+  }
+
+  async invalidateSession(sessionId) {
+    try {
+      // Forcefully disconnect the client
+      const client = this.clients.get(sessionId);
+      if (client) {
+        await client.end(); // Forcefully end the connection
+      }
+  
+      // Clear any residual session data
+      const sessionPath = `./sessions/${sessionId}`;
+      if (fs.existsSync(sessionPath)) {
+        await fs.promises.rm(sessionPath, { recursive: true, force: true });
+      }
+  
+      console.log('Session invalidated successfully.');
+    } catch (error) {
+      console.error('Error invalidating session:', error);
+      throw error;
+    }
+  }
 }
 
 export const connectServices = new ConnectServices();

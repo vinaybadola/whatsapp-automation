@@ -15,15 +15,25 @@ export async function processMessages() {
     if (!job.data) {
       return 'Missing job data';
     }
-    const { sessionId, phoneNumber, messageContent, messageId, userId, mode } = job.data;
+    const { sessionId, phoneNumber, messageContent, messageId, userId, mode, sentVia} = job.data;
     try {
       const client = await connectServices.getClient(sessionId, null, userId, mode);
       if (!client) {
         throw new Error('Session not found');
       }
 
-      const formattedNumber = `${phoneNumber}@s.whatsapp.net`;
-      await client.sendMessage(formattedNumber, { text: messageContent });
+      if (sentVia !== 'individual' && sentVia !== 'group') {
+        throw new Error(`Invalid sentVia value: ${sentVia}`);
+      }
+
+       let recipientId;
+      if (sentVia === 'individual') {
+        recipientId = `${phoneNumber}@s.whatsapp.net`; // For individual messages
+      } else {
+        recipientId = phoneNumber; // For group messages (phoneNumber should already be in <number>@g.us format)
+      }
+
+      await client.sendMessage(recipientId, { text: messageContent });
       await Message.findByIdAndUpdate(messageId, { status: 'sent' });
     } catch (error) {
       console.error('Job failed:', error.message);

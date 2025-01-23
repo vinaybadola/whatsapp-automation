@@ -3,7 +3,7 @@ import { app, server } from './app.js'; // Import app and server from app.js
 import { log } from './utils/logger.js';
 import multer from 'multer';
 
-const PORT = port || 5000;
+const PORT = port || 9000;
 
 // Root route
 app.get('/', (req, res) => {
