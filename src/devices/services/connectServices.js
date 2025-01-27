@@ -84,11 +84,11 @@ class ConnectServices {
             }, 5000);
           } else {
             try {
-              await this.logout(sessionId, io);
-              
-              this.clients.delete(sessionId);
-              // mode = 'qr';
-              // this.createWhatsAppClient(sessionId, io, userId, null, mode);
+
+              await this.sendLogoutEmail(sessionId);
+
+              const sessionPath = `./sessions/${sessionId}`;
+              await fs.promises.rm(sessionPath, { recursive: true, force: true });
 
               if (devicePhone !== null) {
                 await DeviceListModel.updateOne(
@@ -96,6 +96,9 @@ class ConnectServices {
                   { $set: { status: 'offline', reasonForDisconnect: DisconnectReason.loggedOut } }
                 );
               }
+
+              this.clients.delete(sessionId);
+              io.to(sessionId).emit('logout-success');
 
               if (devicePhone !== null) {
                 await DeviceListModel.updateOne(
@@ -253,56 +256,46 @@ class ConnectServices {
       return;
     }
 
-    await client.logout();
+    try {
+      // Attempt to logout only if the connection is still open
+      await client.logout();
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
 
+    // Send logout email
+    await this.sendLogoutEmail(sessionId);
+
+    // Clean up session data
     const sessionPath = `./sessions/${sessionId}`;
     await fs.promises.rm(sessionPath, { recursive: true, force: true });
 
     try {
-      // Fetch session
       const sessionData = await Session.findOne({ socketessionId: sessionId });
       if (!sessionData) {
         console.error("Session not found:", sessionId);
         throw new Error("Session not found");
       }
-      // Fetch device
+
       const sendMailDevice = await DeviceListModel.findOne({ sessionId: sessionData._id });
       if (!sendMailDevice) {
         console.error("Device not found for session:", sessionId);
         throw new Error("Device not found");
       }
 
-      // Fetch user
-      const userData = await User.findOne({ _id: sessionData.user_id });
-      if (!userData) {
-        console.error("User not found for session:", sessionId);
-        throw new Error("User not found");
-      }
-
-      const data = {
-        userId: userData._id,
-        phoneNumber: sendMailDevice.devicePhone,
-        name: userData.name || "Example User",
-        mail: "botvinay416@gmail.com" || userData.email,
-        templateType: "device-logout"
-      };
-
-      // Send email notification
-      await this.email.sendNotificationMail(data);
-
-      // Update device status
       await DeviceListModel.updateOne(
         { devicePhone: sendMailDevice.devicePhone },
         { $set: { status: 'offline', reasonForDisconnect: DisconnectReason.loggedOut } },
       );
 
-      // Delete the session
       await Session.deleteOne({ socketessionId: sessionId });
 
       io.to(sessionId).emit('logout-success');
-
     } catch (error) {
-      console.error("error occuredd while sending mail :", error.message);
+      console.error("Error occurred while cleaning up session:", error.message);
+    }
+    finally {
+      this.clients.delete(sessionId);
     }
   }
 
@@ -313,17 +306,55 @@ class ConnectServices {
       if (client) {
         await client.end(); // Forcefully end the connection
       }
-  
+
       // Clear any residual session data
       const sessionPath = `./sessions/${sessionId}`;
       if (fs.existsSync(sessionPath)) {
         await fs.promises.rm(sessionPath, { recursive: true, force: true });
       }
-  
+
       console.log('Session invalidated successfully.');
     } catch (error) {
       console.error('Error invalidating session:', error);
       throw error;
+    }
+  }
+
+  async sendLogoutEmail(sessionId) {
+    try {
+      const sessionData = await Session.findOne({ socketessionId: sessionId });
+      if (!sessionData) {
+        console.error("Session not found:", sessionId);
+        throw new Error("Session not found");
+      }
+
+      const sendMailDevice = await DeviceListModel.findOne({ sessionId: sessionData._id });
+      if (!sendMailDevice) {
+        console.error("Device not found for session:", sessionId);
+        throw new Error("Device not found");
+      }
+
+      const userData = await User.findOne({ _id: sessionData.user_id });
+      if (!userData) {
+        console.error("User not found for session:", sessionId);
+        throw new Error("User not found");
+      }
+
+      const data = {
+        userId: userData._id,
+        phoneNumber: sendMailDevice.devicePhone,
+        name: userData.name || "Example User",
+        mail: userData.email || "botvinay416@gmail.com",
+        templateType: "device-logout"
+      };
+
+      await this.email.sendNotificationMail(data);
+    
+      await Session.findOneAndDelete({ socketessionId: sessionId });
+
+      console.log('Logout email sent successfully.');
+    } catch (error) {
+      console.error("Error sending logout email:", error.message);
     }
   }
 }

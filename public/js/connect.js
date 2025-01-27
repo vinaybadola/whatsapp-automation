@@ -10,6 +10,7 @@ if (isConnected && sessionId) {
   document.getElementById('qr-code').style.display = 'none';
   document.getElementById('status').textContent = 'You are connected!';
   document.getElementById('profileContainer').style.display = 'block';
+  document.getElementById("fetch-groups").disabled = false;
 } else {
   document.getElementById('start-session').disabled = false;
   document.getElementById('send-message').disabled = true;

@@ -8,27 +8,20 @@ export default class WhatsAppConnect {
   }
 
   startSession = async (req, res) => {
-    const { sessionId, } = req.body;
+    const { sessionId,devicePhone } = req.body;
     const io = req.app.get('socketio');
 
     if (!sessionId) {
       return res.status(400).json({ error: 'Session ID is required' });
     }
+    if (!devicePhone) {
+      return res.status(400).json({ error: 'Device Phone Number is required' });
+    }
 
     try {
-    const userId = req.user?.id || req.user?._id || "678619aa40269dc5850b5063";     
-    if(!userId){
-        userId = "678619aa40269dc5850b5063";  //TODO: remove this line after when frontend created
-      }
-      const userData = {
-        userId,
-        phoneNumber : sessionId,
-        name: req.user?.name || req.user?.username || "Example User",
-        email: req.user?.email || "botvinay416@gmail.com"
-      }
-      const devicePhone = "919695215220";
+      const userId = req.user?.id || req.user?._id;     
       let mode = "qr";
-      await connectServices.createWhatsAppClient(sessionId, io,userId, devicePhone, mode, userData);
+      await connectServices.createWhatsAppClient(sessionId, io,userId, devicePhone, mode);
       return res.status(200).json({ success: '👍 true', message: 'Session started successfully' });
     } catch (error) {
       log.error(`An error occurred while starting WhatsApp session: ${error.message}`);
