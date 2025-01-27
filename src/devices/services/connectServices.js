@@ -146,23 +146,32 @@ class ConnectServices {
     }
   }
 
-  async getClient(sessionId, io, userId, mode) {
-    try {
-      if (mode === 'qr' && !io) {
-        throw new Error('io is required in QR mode');
+  async getClient(sessionId, io, userId, mode, retries = 5, initialDelay = 1000) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        if (mode === 'qr' && !io) {
+          throw new Error('io is required in QR mode');
+        }
+  
+        if (this.clients.has(sessionId)) {
+          const client = this.clients.get(sessionId);
+          console.log('Returning Client from cache for session:', sessionId);
+          return client;
+        } else {
+          console.log('Client not found. Creating a new one with session id:', sessionId);
+          return await this.createWhatsAppClient(sessionId, io, userId, null, mode);
+        }
+      } catch (error) {
+        console.error(`Attempt ${attempt} failed:`, error.message);
+  
+        if (attempt === retries) {
+          throw new Error(`Failed to get client after ${retries} attempts: ${error.message}`);
+        }
+  
+        const delay = initialDelay * Math.pow(2, attempt - 1); // Exponential backoff
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
-
-      if (this.clients.has(sessionId)) {
-        const client = this.clients.get(sessionId);
-        console.log('Returning Client from cache for session:', sessionId);
-        return client;
-      } else {
-        console.log('Client not found  creating a new one with session id:', sessionId);
-        return await this.createWhatsAppClient(sessionId, io, userId, null, mode);
-      }
-    } catch (error) {
-      console.error('Error getting client:', error);
-      throw new Error(`Failed to get client: ${error.message}`);
     }
   }
 
@@ -231,13 +240,15 @@ class ConnectServices {
     }
   }
 
-  async fetchGroups(sessionId) {
+  async fetchGroups(sessionId, userId, io) {
     try {
-      const client = this.clients.get(sessionId);
+      let client = this.clients.get(sessionId);
       if (!client) {
-        throw new Error('Session not found.');
+        client = await this.getClient(sessionId, io, userId, 'qr');
+        if (!client) {
+          throw new Error('Client not found.');
+        }
       }
-
       const groups = await client.groupFetchAllParticipating();
       return Object.values(groups).map((group) => ({
         id: group.id,
@@ -246,6 +257,42 @@ class ConnectServices {
     } catch (error) {
       console.error('Error fetching groups:', error);
       throw new Error(`Failed to fetch groups: ${error.message}`);
+    }
+  }
+
+  async fetchParticipants(sessionId, groupId, userId, io, retries = 5, initialDelay = 1000) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            let client = this.clients.get(sessionId);
+            if (!client) {
+                console.log(`Client not found in memory. Initializing for session: ${sessionId}`);
+                client = await this.getClient(sessionId, io, userId, 'qr');
+                if (!client) {
+                    throw new Error('Client not found.');
+                }
+            }
+
+            // Fetch participants for a specific group
+            const metadata = await client.groupMetadata(groupId);
+            const participants = metadata.participants.map((participant) => ({
+                id: participant.id,
+                name: participant.name || participant.id,
+                phoneNumber: participant.id.split('@')[0],
+            }));
+
+            return participants; 
+        } catch (error) {
+            console.error(`Attempt ${attempt} failed:`, error.message);
+
+            if (attempt === retries) {
+                // If this was the last attempt, throw the error
+                throw new Error(`Failed to fetch participants after ${retries} attempts: ${error.message}`);
+            }
+
+            const delay = initialDelay * Math.pow(2, attempt - 1);
+            console.log(`Retrying in ${delay}ms...`);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+        }
     }
   }
 
@@ -349,7 +396,7 @@ class ConnectServices {
       };
 
       await this.email.sendNotificationMail(data);
-    
+
       await Session.findOneAndDelete({ socketessionId: sessionId });
 
       console.log('Logout email sent successfully.');
