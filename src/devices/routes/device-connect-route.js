@@ -6,10 +6,10 @@ const connectController = new WhatsAppConnectController();
 import express from 'express';
 const router = express.Router();
 
-router.post("/startSession", connectController.startSession);
-router.post("/send-message", connectController.sendMessage);
-router.post("/send-message-group", connectController.sendMessageOnGroup);
-router.post("/fetch-groups", connectController.fetchGroups);
-router.post("/logout", connectController.logout);
+router.post("/startSession", customAuth,connectController.startSession);
+router.post("/send-message", customAuth,connectController.sendMessage);
+router.post("/send-message-group",customAuth, connectController.sendMessageOnGroup);
+router.post("/fetch-groups",customAuth, connectController.fetchGroups);
+router.post("/logout",customAuth, connectController.logout);
 
 export default router;
