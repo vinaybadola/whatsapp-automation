@@ -44,11 +44,11 @@ export default class WhatsAppConnect {
 
   sendMessage = async (req, res) => {
     try {
-    const { sessionId, phoneNumber, message } = req.body;
+    const { sessionId, phoneNumber, message , devicePhone } = req.body;
     const messageContent = message;
     const io = req.app.get('socketio');
 
-    if (!sessionId || !phoneNumber || !message) {
+    if (!sessionId || !phoneNumber || !message || !devicePhone) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -56,14 +56,11 @@ export default class WhatsAppConnect {
     const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
 
     // fetch the user-id from session model
-    const getUser = await sessionModel.findOne({socketessionId : sessionId});
 
-    let userId = getUser ? getUser.user_id : "678619aa40269dc5850b5063";
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      userId = "678619aa40269dc5850b5063"; 
-    }  
+    let userId = req.user.id || req.user._id;
+   
     const mode = "message-processing";
-    await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode);
+    await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone);
       res.status(200).json({ message: 'Message is queued for sending' });
     }catch (error) {
       console.error('An error occurred while sending message in the controller :', error);
@@ -80,7 +77,7 @@ export default class WhatsAppConnect {
       const userId = req.user?.id || req.user?._id;
       const mode = "message-processing";
       const io = req.app.get('socketio');
-      const response = await connectServices.sendMessageGroup(sessionId,io,groupId,message,userId,mode);
+      const response = await connectServices.sendMessageGroup(sessionId,io,groupId,message,userId,mode,devicePhone);
       return res.status(200).json({ success: true, message: response.message });
     }
     catch(err){

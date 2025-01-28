@@ -14,6 +14,7 @@ import deviceConnectRoutes from './src/devices/routes/device-connect-route.js';
 import thirdPartyRoutes from "./src/thirdParty/routes/third-party-route.js";
 import templateRoutes from "./src/templates/routes/template-route.js";
 import contactsRoutes from './src/messages/routes/contacts-route.js';
+import messageTrackRoutes from './src/messageTracker/routes/message-track-route.js';
 
 const app = express();
 const server = http.createServer(app); 
@@ -51,5 +52,6 @@ app.use('/api/device/connect', deviceConnectRoutes);
 app.use("/api/third-party",thirdPartyRoutes);
 app.use("/api/template", templateRoutes);
 app.use("/api/contacts", contactsRoutes);
+app.use("/api/message-tracker", messageTrackRoutes);
 
 export { app, server, io };
