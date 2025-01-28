@@ -99,13 +99,7 @@ class ConnectServices {
 
               this.clients.delete(sessionId);
               io.to(sessionId).emit('logout-success');
-
-              if (devicePhone !== null) {
-                await DeviceListModel.updateOne(
-                  { devicePhone },
-                  { $set: { status: 'offline', reasonForDisconnect: DisconnectReason.loggedOut } }
-                );
-              }
+              
             } catch (error) {
               console.error('Error handling logout or session during connection close :', error);
             }

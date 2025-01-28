@@ -21,7 +21,7 @@ export default class WhatsAppConnect {
     }
 
     // check if phone with same session id is already connected 
-    const sessionExists = await sessionModel.findOne({socketessionId : sessionId, user_id: userId});
+    const sessionExists = await sessionModel.findOne({socketessionId : sessionId, is_connected : true});
     if(sessionExists){
       return res.status(400).json({ error: 'Session already exists for this user' });
     }
