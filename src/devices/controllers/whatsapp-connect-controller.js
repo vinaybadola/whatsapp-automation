@@ -3,6 +3,7 @@ import { log } from '../../../utils/logger.js';
 import sessionModel from '../models/session-model.js';
 import {formatPhoneNumber} from '../../../helpers/message-helper.js';
 import mongoose from 'mongoose';
+import DeviceListModel from '../models/device-list-model.js';
 export default class WhatsAppConnect {
   constructor() {
   }
@@ -14,12 +15,24 @@ export default class WhatsAppConnect {
     if (!sessionId) {
       return res.status(400).json({ error: 'Session ID is required' });
     }
+    const userId = req.user?.id || req.user?._id || "678619aa40269dc5850b5063";     
     if (!devicePhone) {
       return res.status(400).json({ error: 'Device Phone Number is required' });
     }
 
+    // check if phone with same session id is already connected 
+    const sessionExists = await sessionModel.findOne({socketessionId : sessionId, user_id: userId});
+    if(sessionExists){
+      return res.status(400).json({ error: 'Session already exists for this user' });
+    }
+
+    // check if phone number is already connected
+    const phoneExists = await DeviceListModel.findOne({devicePhone, status : 'online'});
+    if(phoneExists){
+      return res.status(400).json({ error: 'Phone number is already connected' });
+    }
+    
     try {
-      const userId = req.user?.id || req.user?._id;     
       let mode = "qr";
       await connectServices.createWhatsAppClient(sessionId, io,userId, devicePhone, mode);
       return res.status(200).json({ success: '👍 true', message: 'Session started successfully' });
@@ -64,7 +77,7 @@ export default class WhatsAppConnect {
       if(!groupId || !message || !sessionId){
         return res.status(400).json({success: false, error: 'Missing required fields'});
       }
-      const userId = req.user?.id || req.user?._id || "678619aa40269dc5850b5063"; //TODO: add the middleware and remove this hardcoded text
+      const userId = req.user?.id || req.user?._id;
       const mode = "message-processing";
       const io = req.app.get('socketio');
       const response = await connectServices.sendMessageGroup(sessionId,io,groupId,message,userId,mode);
@@ -85,17 +98,41 @@ export default class WhatsAppConnect {
       if (!sessionId) {
         return res.status(400).json({ success: false, error: 'Session ID is required' });
       }
-  
-      const groups = await connectServices.fetchGroups(sessionId);
+      const userId = req.user?.id || req.user?._id || "678619aa40269dc5850b5063";
       const io = req.app.get('socketio');
+      const groups = await connectServices.fetchGroups(sessionId, userId, io);
       io.to(sessionId).emit('groups-data', groups);
-  
+
       return res.status(200).json({ success: true, groups });
     } catch (err) {
       console.log('An error occurred while fetching groups:', err);
+      if(err instanceof Error){
+        return res.status(400).json({ success: false, error: err.message });
+      }
       return res.status(500).json({ success: false, error: `An error occurred while fetching groups: ${err.message}` });
     }
   };
+
+  fetchGroupParticipants = async (req, res) => {
+    try{
+      const { sessionId, groupId } = req.body;
+      const userId = req.user?.id || req.user?._id || "678619aa40269dc5850b5063";
+      if (!sessionId || !groupId) {
+        return res.status(400).json({ success: false, error: 'Session ID and Group ID are required' });
+      }
+      const io = req.app.get('socketio');
+      const participants = await connectServices.fetchParticipants(sessionId, groupId, userId, io);
+      io.to(sessionId).emit('participants-data', participants);
+      return res.status(200).json({ success: true, participants });
+    }
+    catch(err){
+      console.log(`An error occurred while fetching participants: ${err.message}`);
+      if(err instanceof Error){
+        return res.status(400).json({ success: false, error: err.message });
+      }
+      return res.status(500).json({ success: false, error: `An error occurred while fetching participants: ${err.message}` });
+    }
+  }
 
   logout = async (req, res) => {
     try {

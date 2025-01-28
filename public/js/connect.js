@@ -29,16 +29,20 @@ document.getElementById('start-session').addEventListener('click', () => {
   let sessionId = localStorage.getItem('sessionId') || socket.id;
   localStorage.setItem('sessionId', sessionId);
 
-  fetch('/api/device/connect/startSession', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId }),
-  })
+ fetch('/api/device/connect/startSession', {
+  method: 'POST',
+  headers: { 
+    'Content-Type': 'application/json',
+    'Cookie': document.cookie
+  },
+  body: JSON.stringify({ sessionId, devicePhone :"919695215220" }),
+})
     .then((response) => response.json())
     .then((data) => {
       console.log(data.message);
       document.getElementById('start-session').disabled = true;
       document.getElementById('send-message').disabled = false;
+      document.getElementById("fetch-groups").disabled = false;
       localStorage.setItem('isConnected', 'true'); // Mark session as connected
     })
     .catch((error) => console.error(error));

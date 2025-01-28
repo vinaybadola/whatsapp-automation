@@ -8,7 +8,7 @@ export default class DeviceListRepository {
     async getDeviceList(limit, skip) {
         // count total devices with query
         const totalItems = await deviceListModel.countDocuments();
-        const deviceList = await deviceListModel.find().skip(skip).limit(limit);
+        const deviceList = await deviceListModel.find().skip(skip).limit(limit).sort({createdAt: -1});
         return {deviceList, totalItems};
     }
 
