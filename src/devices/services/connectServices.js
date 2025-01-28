@@ -157,7 +157,13 @@ class ConnectServices {
           const client = this.clients.get(sessionId);
           console.log('Returning Client from cache for session:', sessionId);
           return client;
-        } else {
+        }
+         else {
+          const clientFromDatabase = await Session.findOne({ socketessionId: sessionId , userId, is_connected: true });
+          if(!clientFromDatabase) {
+            console.error(`Session not found in the database for session ID: ${sessionId}`);
+            return null;
+          }
           console.log('Client not found. Creating a new one with session id:', sessionId);
           return await this.createWhatsAppClient(sessionId, io, userId, null, mode);
         }

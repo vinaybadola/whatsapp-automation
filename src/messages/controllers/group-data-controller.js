@@ -1,32 +1,37 @@
 import { paginate, paginateReturn } from '../../../helpers/pagination.js';
 import GroupParticipants from '../models/group-participants-data-model.js';
 import GroupData from '../models/user-group-data-model.js';
+import { connectServices } from '../../devices/services/connectServices.js';
+import sessionHelper from '../../../helpers/session-helper.js';
 export default class GroupDataController {
 
     createGroup = async (req, res) => {
         try {
-            const { groupName, groupjid, isCustomGroup = false, participants } = req.body;
+            const { groupName, groupjid, isCustomGroup = false, participants} = req.body;
             const userId = req.user._id || req.user.id;
             const group = await GroupData.create({ groupName, groupjid, isCustomGroup, userId });
 
-            if (participants && participants.length > 0) {
-                const participantsArray = participants.map((participant, index) => {
-                    const sanitizedPhoneNumber = participant.phoneNumber.replace(/^\+/, '');
-                    if (!/^\d{1,15}$/.test(sanitizedPhoneNumber)) {
-                        throw new Error(
-                            `Participant at index ${index} has an invalid phone number: ${participant.phoneNumber}`
-                        );
-                    }
-                    return {
-                        groupId: group._id,
-                        name: participant.name || 'Sir/Mam',
-                        phoneNumber: sanitizedPhoneNumber,
-                        userId,
-                    };
-                });
+            if(isCustomGroup == true){
+                if (participants && participants.length > 0) {
+                    const participantsArray = participants.map((participant, index) => {
+                        const sanitizedPhoneNumber = participant.phoneNumber.replace(/^\+/, '');
+                        if (!/^\d{1,15}$/.test(sanitizedPhoneNumber)) {
+                            throw new Error(
+                                `Participant at index ${index} has an invalid phone number: ${participant.phoneNumber}`
+                            );
+                        }
+                        return {
+                            groupId: group._id,
+                            name: participant.name || 'Sir/Mam',
+                            phoneNumber: sanitizedPhoneNumber,
+                            userId,
+                        };
+                    });
 
-                const data = await GroupParticipants.insertMany(participantsArray);
-                return res.status(201).json({ success: true, data: data });
+                    const data = await GroupParticipants.insertMany(participantsArray);
+                    return res.status(201).json({ success: true, data: data });
+                }
+
             }
             return res.status(201).json({ success: true, data: group });
 
@@ -37,6 +42,66 @@ export default class GroupDataController {
                 return res.status(400).json({ success: false, error: err.message });
             }
             return res.status(500).json({ success: false, error: `An error occurred while creating group : ${err.message}` });
+        }
+    }
+
+    saveGroupParticipants = async(req,res)=>{
+        try{
+            const {groupName, groupId, sessionId} = req.body;
+            const userId = req.user._id || req.user.id;
+
+            // check if session is valid and connected
+            const session = await sessionHelper.getValidSession(sessionId, userId);
+            if(!session){
+                throw new Error('Your device is disconnected ! Please connect the device and try again');
+            }
+
+            const io = req.app.get('socketio');
+            const fetchParticipants = await connectServices.fetchParticipants(sessionId, groupId, userId, io);
+
+            if(fetchParticipants.length === 0){
+                throw new Error('No participants found in the group');
+            }
+
+            const group = await GroupData.findOne({ groupjid: groupId })
+
+            if(group){
+                const participants = await GroupParticipants.find({groupId: group._id});
+                if(participants.length > 0){
+                    await GroupParticipants.deleteMany({groupId: group._id});
+                }
+                const participantsArray = fetchParticipants.map((participant, index) => {
+                    return {
+                        groupId: group._id,
+                        name: 'Sir/Mam',
+                        phoneNumber: participant.phoneNumber,
+                        userId, 
+
+                    }
+                });
+                await GroupParticipants.insertMany(participantsArray);
+            }
+            else{
+                const group = await GroupData.create({ groupName: groupName, groupjid: groupId, isCustomGroup: true, userId });
+
+                const participantsArray = fetchParticipants.map((participant, index) => {
+                    return {
+                        groupId: group._id,
+                        name: participant.name || 'Sir/Mam',
+                        phoneNumber: participant.phoneNumber,
+                        userId,
+                    }
+                });
+                await GroupParticipants.insertMany(participantsArray);
+            }       
+            return res.status(200).json({ message: 'Group created successfully' });            
+        }
+        catch(err){
+            console.error(`An error occurred while saving group participants in the controller : ${err.message}`);
+            if(err instanceof Error){
+                return res.status(400).json({success:false,error:err.message});
+            }
+            return res.status(500).json({success:false,error:`An error occurred while saving group participants : ${err.message}`});
         }
     }
 
@@ -51,7 +116,7 @@ export default class GroupDataController {
                 if (!group.name || typeof group.name !== "string") {
                     throw new Error(`Group at index ${index} is missing a valid 'name'.`);
                 }
-                if (!group.groupjid || typeof group.groupjid !== "string") {
+                if (!group.id || typeof group.id !== "string") {
                     throw new Error(`Group at index ${index} is missing a valid 'groupjid'.`);
                 }
             });
@@ -61,7 +126,7 @@ export default class GroupDataController {
                 return {
                     userId: userId,
                     groupName: group.name,
-                    groupjid: group.groupjid
+                    groupjid: group.id
                 }
             });
 
@@ -125,6 +190,9 @@ export default class GroupDataController {
             if (!group) {
                 return res.status(404).json({ success: false, error: 'Group not found' });
             }
+            // update group participants
+            await GroupParticipants.updateMany({ groupId: id }, req.body);
+
             return res.status(200).json({ success: true, data: group });
         }
         catch (err) {
@@ -143,7 +211,9 @@ export default class GroupDataController {
             if (!group) {
                 return res.status(404).json({ success: false, error: 'Group not found' });
             }
-            return res.status(200).json({ success: true, data: group });
+            // delete group participants as well
+            await GroupParticipants.deleteMany({ groupId: id });
+            return res.status(200).json({ success: true, message: 'Group deleted successfully' });
         }
         catch (err) {
             console.error(`An error occurred while deleting group in the controller : ${err.message}`);
