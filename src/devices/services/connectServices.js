@@ -179,7 +179,7 @@ class ConnectServices {
     this.clients.delete(sessionId);
   }
 
-  async sendMessageGroup(sessionId, io, groupId, messageContent, userId, mode) {
+  async sendMessageGroup(sessionId, io, groupId, messageContent, userId, mode,devicePhone) {
     try {
       if (!groupId) throw new Error('Group JID is required.');
       if (!messageContent) throw new Error('Message content is required.');
@@ -202,6 +202,7 @@ class ConnectServices {
         userId,
         mode,
         sentVia: 'group',
+        devicePhone
       });
 
       return { success: true, message: `Message has been queued ${groupId}` };
@@ -211,7 +212,7 @@ class ConnectServices {
     }
   }
 
-  async sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode) {
+  async sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode,devicePhone) {
     try {
 
       const message = new Message({
@@ -231,6 +232,7 @@ class ConnectServices {
         messageId: message._id,
         mode,
         sentVia: 'individual',
+        devicePhone
       });
 
       // return client;

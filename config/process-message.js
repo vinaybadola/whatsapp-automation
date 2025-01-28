@@ -1,8 +1,10 @@
 import messageQueue from './queue.js';
 import Message from '../src/messages/models/message-data-model.js';
-import {connectServices} from '../src/devices/services/connectServices.js';
+import { connectServices } from '../src/devices/services/connectServices.js';
+import messageTrackerModel from '../src/messageTracker/models/message-tracker-model.js';
 
 export async function processMessages() {
+  
   messageQueue.on('completed', (job) => {
     console.log(`Job ${job.id} completed`);
   });
@@ -15,7 +17,7 @@ export async function processMessages() {
     if (!job.data) {
       return 'Missing job data';
     }
-    const { sessionId, phoneNumber, messageContent, messageId, userId, mode, sentVia} = job.data;
+    const { sessionId, phoneNumber, messageContent, messageId, userId, mode, sentVia, devicePhone } = job.data;
     try {
       const client = await connectServices.getClient(sessionId, null, userId, mode);
       if (!client) {
@@ -26,7 +28,7 @@ export async function processMessages() {
         throw new Error(`Invalid sentVia value: ${sentVia}`);
       }
 
-       let recipientId;
+      let recipientId;
       if (sentVia === 'individual') {
         recipientId = `${phoneNumber}@s.whatsapp.net`; // For individual messages
       } else {
@@ -34,10 +36,35 @@ export async function processMessages() {
       }
 
       await client.sendMessage(recipientId, { text: messageContent });
-      await Message.findByIdAndUpdate(messageId, { status: 'sent' });
+      await Promise.all([
+        Message.findByIdAndUpdate(messageId, { status: 'sent' }),
+        messageTrackerModel.create({
+          jobId: job.id,
+          sender: devicePhone,
+          receiverId: phoneNumber,
+          status: 'sent',
+          userId,
+          message: messageContent,
+          mode,
+          sentVia,
+        }),
+      ]);
     } catch (error) {
       console.error('Job failed:', error.message);
-      await Message.findByIdAndUpdate(messageId, { status: 'failed', reasonForFailure: error.message });
+      await Promise.all([
+        Message.findByIdAndUpdate(messageId, { status: 'failed', reasonForFailure: error.message }),
+        messageTrackerModel.create({
+          jobId: job.id,
+          sender: devicePhone,
+          receiverId: phoneNumber,
+          status: 'failed',
+          error: error.message,
+          userId,
+          message: messageContent,
+          mode,
+          sentVia,
+        }),
+      ]);
       throw error;
     }
   });
