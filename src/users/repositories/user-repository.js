@@ -37,4 +37,8 @@ export default class UserRepository {
     async findOne(data){
       return await User.findOne(data);
     }
+
+    async findAllUsers(skip,limit){
+      return await User.find().skip(skip).limit(limit).sort({createdAt: -1});
+    }
 }

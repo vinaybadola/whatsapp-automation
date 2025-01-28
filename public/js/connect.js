@@ -12,7 +12,7 @@ if (isConnected && sessionId) {
   document.getElementById('profileContainer').style.display = 'block';
   document.getElementById("fetch-groups").disabled = false;
 } else {
-  document.getElementById('start-session').disabled = false;
+  // document.getElementById('start-session').disabled = false;
   document.getElementById('send-message').disabled = true;
   document.getElementById('qr-code').style.display = 'block';
   document.getElementById('status').textContent = 'Please start a session.';
@@ -24,29 +24,29 @@ socket.on('connect', () => {
   document.getElementById('status').textContent = " ";
 });
 
-document.getElementById('start-session').addEventListener('click', () => {
-  console.log('Starting session with ID:', socket.id);
-  let sessionId = localStorage.getItem('sessionId') || socket.id;
-  localStorage.setItem('sessionId', sessionId);
+// document.getElementById('start-session').addEventListener('click', () => {
+//   console.log('Starting session with ID:', socket.id);
+//   let sessionId = localStorage.getItem('sessionId') || socket.id;
+//   localStorage.setItem('sessionId', sessionId);
 
- fetch('/api/device/connect/startSession', {
-  method: 'POST',
-  headers: { 
-    'Content-Type': 'application/json',
-    'Cookie': document.cookie
-  },
-  body: JSON.stringify({ sessionId, devicePhone :"919695215220" }),
-})
-    .then((response) => response.json())
-    .then((data) => {
-      console.log(data.message);
-      document.getElementById('start-session').disabled = true;
-      document.getElementById('send-message').disabled = false;
-      document.getElementById("fetch-groups").disabled = false;
-      localStorage.setItem('isConnected', 'true'); // Mark session as connected
-    })
-    .catch((error) => console.error(error));
-});
+//  fetch('/api/device/connect/startSession', {
+//   method: 'POST',
+//   headers: { 
+//     'Content-Type': 'application/json',
+//     'Cookie': document.cookie
+//   },
+//   body: JSON.stringify({ sessionId, devicePhone :"919695215220" }),
+// })
+//     .then((response) => response.json())
+//     .then((data) => {
+//       console.log(data.message);
+//       document.getElementById('start-session').disabled = true;
+//       document.getElementById('send-message').disabled = false;
+//       document.getElementById("fetch-groups").disabled = false;
+//       localStorage.setItem('isConnected', 'true'); // Mark session as connected
+//     })
+//     .catch((error) => console.error(error));
+// });
 
 socket.on('qr-code', (qr) => {
   document.getElementById('qr-code').textContent = qr;
@@ -96,7 +96,7 @@ socket.on('connected', (message) => {
 
 socket.on('logout-success', () => {
   console.log('Logged out successfully.');
-  document.getElementById('start-session').disabled = false;
+  // document.getElementById('start-session').disabled = false;
   document.getElementById('send-message').disabled = true;
   localStorage.removeItem('sessionId');
   localStorage.removeItem('isConnected'); // Clear connection state
@@ -121,7 +121,7 @@ document.getElementById('logout').addEventListener('click', () => {
   .then((response) => response.json())
   .then((data) => {
     console.log(data.message);
-    document.getElementById('start-session').disabled = false;
+    // document.getElementById('start-session').disabled = false;
     document.getElementById('send-message').disabled = true;
     localStorage.removeItem('sessionId');
     localStorage.removeItem('isConnected'); // Clear connection state
@@ -156,4 +156,85 @@ document.getElementById('fetch-groups').addEventListener('click', () => {
     });
   })
   .catch((error) => console.error(error));
+});
+
+
+async function fetchDevices() {
+  try {
+    const response = await fetch('http://localhost:8000/api/device/');
+    const data = await response.json();
+    if (data.success) {
+      renderDevices(data.data);
+    } else {
+      console.error('Failed to fetch devices:', data.message);
+    }
+  } catch (error) {
+    console.error('Error fetching devices:', error);
+  }
+}
+
+function renderDevices(devices) {
+  const deviceList = document.getElementById('device-list');
+  deviceList.innerHTML = ''; // Clear existing content
+
+  devices.forEach(device => {
+    const deviceCard = document.createElement('div');
+    deviceCard.className = 'device-card';
+
+    deviceCard.innerHTML = `
+      <h3>${device.deviceName}</h3>
+      <p>${device.devicePhone}</p>
+      <p>Status: <span class="status ${device.status}">${device.status}</span></p>
+      <button class="start-session-btn" data-device-phone="${device.devicePhone}" ${device.status === 'online' ? 'disabled' : ''}>
+        Start Session
+      </button>
+    `;
+
+    deviceList.appendChild(deviceCard);
+  });
+
+  // Add event listeners to start session buttons
+  document.querySelectorAll('.start-session-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const devicePhone = button.getAttribute('data-device-phone');
+      startSession(devicePhone);
+    });
+  });
+}
+
+ // Start session for a device
+ async function startSession(devicePhone) {
+  const sessionId = socket.id;
+  try {
+    const response = await fetch('/api/device/connect/startSession', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cookie': document.cookie
+      },
+      body: JSON.stringify({ sessionId, devicePhone }),
+    });
+    const data = await response.json();
+    if (data.success) {
+      document.getElementById('status').textContent = 'Session started successfully!';
+    } else {
+      document.getElementById('status').textContent = `Error: ${data.error}`;
+    }
+  } catch (error) {
+    console.error('Error starting session:', error);
+    document.getElementById('status').textContent = 'Failed to start session.';
+  }
+}
+
+fetchDevices();
+
+// Socket event listeners
+socket.on('qr-code', (qr) => {
+  document.getElementById('qr-code').textContent = qr;
+});
+
+socket.on('connected', (message) => {
+  document.getElementById('status').textContent = message;
+  document.getElementById('qr-code').style.display = 'none';
+  document.getElementById('profileContainer').style.display = 'block';
 });

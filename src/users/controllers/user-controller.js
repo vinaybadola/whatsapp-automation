@@ -1,6 +1,5 @@
 import UserService from '../services/user-service.js';
 import UserRepository from '../repositories/user-repository.js';
-import {log} from "../../../utils/logger.js";
 import { paginate, paginateReturn} from '../../../helpers/pagination.js';
 
 const userRepository = new UserRepository();
@@ -21,7 +20,7 @@ export default class UserController {
             }
             return res.status(200).json({success: true, message: 'User found', user});
         } catch (error) {
-            log.error('An unexpected error occurred while getting user by ID :', error);
+            console.error('An unexpected error occurred while getting user by ID :', error);
             if(error instanceof Error){
                 return res.status(500).json({ success: false, error: error.message });
             }
@@ -39,7 +38,7 @@ export default class UserController {
     
             return res.status(200).json({success: true, message: 'User updated successfully', updatedUser});
         } catch (error) {
-            log.error(`An unexpected error occurred while updating user: ${error.message}`);
+            console.error(`An unexpected error occurred while updating user: ${error.message}`);
     
             // Handle specific errors
             if (error.message === 'Conflict') {
@@ -50,6 +49,26 @@ export default class UserController {
         }
     };
 
+    getAllUsers = async(req,res) =>{
+        try{
+            const {page, limit, skip} = paginate(req);
+            const users = await this.userService.getAllUsers(skip,limit);
+
+            if(users.length === 0){
+                return res.status(404).json({success: false, message: 'No users found'});
+            }
+
+            return res.status(200).json({success: true, message: 'Users retrieved successfully', data: users, pagination: paginateReturn(page, limit, users.length)});
+        }
+        catch(error){
+            console.error(`An unexpected error occurred while getting all users: ${error.message}`);
+            if(error instanceof Error){
+                return res.status(400).json({ success: false, error: error.message });
+            }
+            return res.status(500).json({ success: false, error: 'An unexpected error occurred' });
+        }
+    }
+
     changeUserRole = async(req,res) =>{
         try{
             const {userId, roleId} = req.body;
@@ -57,7 +76,7 @@ export default class UserController {
             return res.status(200).json({success: true, message: 'User role updated successfully '});
         }
         catch(err){
-            log.error(`An unexpected error occurred while changing user role: ${err.message}`);
+            console.error(`An unexpected error occurred while changing user role: ${err.message}`);
             if(err instanceof Error){
                 return res.status(400).json({success: false, error: err.message});
             }
@@ -71,7 +90,7 @@ export default class UserController {
             return res.status(200).json({success: true, message: 'Role created successfully'});
         }
         catch(err){
-            log.error(`An unexpected error occurred while creating role: ${err.message}`);
+            console.error(`An unexpected error occurred while creating role: ${err.message}`);
             if(err instanceof Error){
                 return res.status(400).json({ success: false, error: err.message });
             }
@@ -95,7 +114,7 @@ export default class UserController {
             });
         }
         catch(err){
-            log.error(`An unexpected error occurred while getting all roles: ${err.message}`);
+            console.error(`An unexpected error occurred while getting all roles: ${err.message}`);
             if(err instanceof Error){
                 return res.status(400).json({success: false, error: err.message});
             }
@@ -114,7 +133,7 @@ export default class UserController {
             return res.status(200).json({success: true, message: 'Role retrieved successfully', data: role});
         }
         catch(err){
-            log.error(`An unexpected error occurred while getting role by id: ${err.message}`);
+            console.error(`An unexpected error occurred while getting role by id: ${err.message}`);
             if(err instanceof Error){
                 return res.status(400).json({success: false, error: err.message});
             }
@@ -132,7 +151,7 @@ export default class UserController {
             return res.status(200).json({success: true, message: 'Role updated successfully', data: role});
         }
         catch(err){
-            log.error(`An unexpected error occurred while updating role: ${err.message}`);
+            console.error(`An unexpected error occurred while updating role: ${err.message}`);
             if(err instanceof Error){
                 return res.status(400).json({success: false, error: err.message});
             }
