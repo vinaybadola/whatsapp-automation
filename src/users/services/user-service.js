@@ -1,4 +1,5 @@
 import customRolesModel from "../models/custom-roles-model.js";
+import UserRoleRelationModel from "../models/user-role-relation-model.js";
 export default class UserService {
   constructor(userRepository) {
     this.userRepository = userRepository;
@@ -75,7 +76,7 @@ export default class UserService {
       }
       
       // assing user role or change the user role according to new role 
-      const assignRole = await this.userRepository.updateUser(userId, {customRole: roleId});
+      const assignRole = await UserRoleRelationModel.findOneAndUpdate({userId: userId}, {roleId: roleId}, {new: true, upsert: true});
       if(!assignRole){
         throw new Error('User role not updated');
       }
@@ -108,6 +109,18 @@ export default class UserService {
 
   async getRoleById(id){
     return await customRolesModel.findById(id);
+  }
+
+  async getAllUsers(skip,limit){
+    const data = await this.userRepository.findAllUsers(skip,limit);
+    data.forEach(user => {
+      user.password = undefined;
+      user.tokens = undefined;
+      user.createdAt = undefined;
+      user.updatedAt = undefined;
+      user.__v = undefined;
+    });
+    return data;
   }
 
 }

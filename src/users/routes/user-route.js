@@ -12,6 +12,7 @@ const userController = new UserController();
 router.get('/profile/', customAuth, handleValidationErrors, userController.getUserById);
 router.put('/profile-update/', customAuth, upload.single('profileImage'), handleValidationErrors,userController.updateUser);
 router.post('/change-user-role', userRoleChangeValidation,handleValidationErrors, userController.changeUserRole);
+router.get('/get-all-users', customAuth, userController.getAllUsers);
 
 // Roles related 
 router.post("/create-role", roleValidation, handleValidationErrors, userController.createRole);
