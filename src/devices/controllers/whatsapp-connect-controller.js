@@ -3,6 +3,7 @@ import { log } from '../../../utils/logger.js';
 import sessionModel from '../models/session-model.js';
 import {formatPhoneNumber} from '../../../helpers/message-helper.js';
 import mongoose from 'mongoose';
+import DeviceListModel from '../models/device-list-model.js';
 export default class WhatsAppConnect {
   constructor() {
   }
@@ -14,12 +15,24 @@ export default class WhatsAppConnect {
     if (!sessionId) {
       return res.status(400).json({ error: 'Session ID is required' });
     }
+    const userId = req.user?.id || req.user?._id || "678619aa40269dc5850b5063";     
     if (!devicePhone) {
       return res.status(400).json({ error: 'Device Phone Number is required' });
     }
 
+    // check if phone with same session id is already connected 
+    const sessionExists = await sessionModel.findOne({socketessionId : sessionId, user_id: userId});
+    if(sessionExists){
+      return res.status(400).json({ error: 'Session already exists for this user' });
+    }
+
+    // check if phone number is already connected
+    const phoneExists = await DeviceListModel.findOne({devicePhone, status : 'online'});
+    if(phoneExists){
+      return res.status(400).json({ error: 'Phone number is already connected' });
+    }
+    
     try {
-      const userId = req.user?.id || req.user?._id || "678619aa40269dc5850b5063";     
       let mode = "qr";
       await connectServices.createWhatsAppClient(sessionId, io,userId, devicePhone, mode);
       return res.status(200).json({ success: '👍 true', message: 'Session started successfully' });

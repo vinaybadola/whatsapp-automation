@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 const {Schema} = mongoose;
 
 const sessionSchema = new Schema({
-    socketessionId: { type: String,unique: true },
+    socketessionId: { type: String,unique: true, required: true ,sparse: true},
     authState: { type: Object },
     qr_code: {type : String},
     is_connected: {type : Boolean, default : false},
