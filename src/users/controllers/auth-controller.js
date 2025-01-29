@@ -1,8 +1,6 @@
 import AuthRepository from "../repositories/auth-repository.js";
 import UserRepository from '../repositories/user-repository.js';
 import AuthService from '../services/auth-service.js';
-import { log } from "../../../utils/logger.js";
-
 const authRepository = new AuthRepository();
 
 export default class UserController {
@@ -48,7 +46,7 @@ export default class UserController {
       return res.status(201).json({ message: 'User created succesfully'});
     }
     catch (error) {
-      log.error(`An unexpected error occurred while creating user in controller. ${error.message}`);
+      console.error(`An unexpected error occurred while creating user in controller. ${error.message}`);
       if (error instanceof Error) {
         return res.status(400).json({ message: "validation Exception", success: false, error: error.message });
       }
@@ -73,11 +71,11 @@ export default class UserController {
       return res.status(200).json({ message: 'Login successful' });
 
     } catch (error) {
-      log.error(`An unexpected error occurred while logging in user in controller. ${error.message}`);
+      console.error(`An unexpected error occurred while logging in user in controller. ${error.message}`);
       if (error instanceof Error) {
-        return res.status(400).json({ error: error.message });
+        return res.status(400).json({ success: false, error: error.message });
       }
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({success: false, error: error.message });
     }
   };
 
@@ -91,8 +89,11 @@ export default class UserController {
   
       return res.status(200).json({ message: 'Logged out successfully' });
     } catch (error) {
-      log.error(`An unexpected error occurred while logging out. ${error.message}`);
-      return res.status(500).json({ success: false, error: 'An unexpected error occurred' });
+      console.error(`An unexpected error occurred while logging out. ${error.message}`);
+      if (error instanceof Error) {
+        return res.status(400).json({ error: error.message });
+      }
+      return res.status(500).json({ success: false, error: `An unexpected error occurred while logging out : ${error.message}` });
     }
   
   };

@@ -101,7 +101,7 @@ socket.on('logout-success', () => {
   localStorage.removeItem('sessionId');
   localStorage.removeItem('isConnected'); // Clear connection state
   document.getElementById('status').textContent = 'Logged out. Please scan the QR code to reconnect.';
-  location.reload();
+  // location.reload();
 });
 
 document.getElementById('logout').addEventListener('click', () => {
@@ -126,7 +126,7 @@ document.getElementById('logout').addEventListener('click', () => {
     localStorage.removeItem('sessionId');
     localStorage.removeItem('isConnected'); // Clear connection state
     document.getElementById('status').textContent = 'Logged out. Please scan the QR code to reconnect.';
-    location.reload();
+    // location.reload();
   })
   .catch((error) => {
     console.error('Error during logout:', error);
@@ -237,4 +237,20 @@ socket.on('connected', (message) => {
   document.getElementById('status').textContent = message;
   document.getElementById('qr-code').style.display = 'none';
   document.getElementById('profileContainer').style.display = 'block';
+});
+
+socket.on('error', (error) => {
+  console.error('Socket error:', error);
+  if (error.includes('Phone number mismatch')) {
+    document.getElementById('status').textContent = error;
+    document.getElementById('qr-code').style.display = 'block';
+    document.getElementById('profileContainer').style.display = 'none';
+    document.getElementById('start-session').disabled = false;
+    document.getElementById('send-message').disabled = true;
+    document.getElementById("fetch-groups").disabled = true;
+    localStorage.removeItem('sessionId');
+    localStorage.removeItem('isConnected'); // Clear connection state
+  } else {
+    document.getElementById('status').textContent = 'Socket error occurred.';
+  }
 });

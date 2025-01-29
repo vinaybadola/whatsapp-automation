@@ -10,6 +10,9 @@ export default class MessageTrackerController {
 
             const data = await messageTrackerModel.find({userId}).skip(skip).limit(limit).sort({createdAt : -1});
             const total = await messageTrackerModel.countDocuments({userId});
+            if(total === 0){
+                return res.status(404).json({success: false, message: "Data not found"});
+            }
 
             const pagination = paginateReturn(data, page, limit, total);
             return res.status(200).json({success: true,data : data, pagination});

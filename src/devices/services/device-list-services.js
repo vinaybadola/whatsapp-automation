@@ -28,6 +28,10 @@ export default class DeviceListServices{
             if(checkExistingDeviceNumber.length > 0){
                 throw new Error('Device number already exist');
             }
+            // append the 91 in the front of the number if number is of 10 digits 
+            if(deviceData.devicePhone.length === 10){
+                deviceData.devicePhone = `91${deviceData.devicePhone}`;
+            }
 
             const getUserById = await this.userRepository.getUserById(deviceData.userId);
             if(!getUserById){
