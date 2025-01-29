@@ -228,14 +228,14 @@ class ConnectServices {
   async sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode,devicePhone) {
     try {
 
-      const client = await this.getClient(sessionId, io, userId, mode);
+      // const client = await this.getClient(sessionId, io, userId, mode);
 
-      const [userOnWhatsApp] = await client.isOnWhatsApp(formattedPhoneNumber);
+      // const userOnWhatsApp = await client.onWhatsApp(formattedPhoneNumber);
 
-      if (!userOnWhatsApp?.exists) {
-       console.log(`The phone number ${formattedPhoneNumber} is not registered on WhatsApp while sending Message`);
-       return null;
-      }
+      // if (!userOnWhatsApp || userOnWhatsApp.length === 0) {
+      //   console.log(`The phone number ${formattedPhoneNumber} is not registered on WhatsApp while sending Message`);
+      //   return null;
+      // }
 
       const message = new Message({
         sessionId,
