@@ -134,12 +134,6 @@ class ConnectServices {
         }
       });
 
-      client.ev.on('disconnected', async (reason) => {
-        if (reason === "NAVIGATION") { 
-            console.log("User logged out from WhatsApp Web");
-            await this.sendLogoutEmail(userEmail);
-        }
-      });
       if (mode === 'message-processing') {
         client.ev.on('messages.upsert', ({ messages }) => {
           try {
