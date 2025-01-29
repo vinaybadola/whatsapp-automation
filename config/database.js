@@ -1,5 +1,4 @@
 import { connect, set } from 'mongoose';
-import { log } from '../utils/logger.js';
 import { dbUri } from './envConfig.js';
 
 let cachedDb = null;
@@ -17,7 +16,6 @@ const connectDB = async () => {
   } catch (err) {
     set('debug', true);
     console.error(`MongoDB connection error: ${err}`);
-    log.error("An error occurred while connecting to the database", err);
     process.exit(1); 
   }
 };

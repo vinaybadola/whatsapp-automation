@@ -16,7 +16,7 @@ class ConnectServices {
 
   async createWhatsAppClient(sessionId, io, userId, devicePhone = null, mode = 'qr') {
     if (this.promises.has(sessionId)) {
-      console.log(`Awaiting client creation for session ${sessionId}`);
+      // console.log(`Awaiting client creation for session ${sessionId}`);
       return await this.promises.get(sessionId);
     }
 
@@ -84,9 +84,6 @@ class ConnectServices {
             }, 5000);
           } else {
             try {
-
-              await this.sendLogoutEmail(sessionId);
-
               const sessionPath = `./sessions/${sessionId}`;
               await fs.promises.rm(sessionPath, { recursive: true, force: true });
 
@@ -95,8 +92,13 @@ class ConnectServices {
                   { devicePhone },
                   { $set: { status: 'offline', reasonForDisconnect: DisconnectReason.loggedOut } }
                 );
-              }
 
+                if (lastDisconnect?.error?.output?.statusCode === DisconnectReason.loggedOut) {
+                  await this.sendLogoutEmail(sessionId); // Send logout email only if manually logged out
+                }
+
+                await Session.deleteOne({ socketessionId: sessionId });
+              }
               this.clients.delete(sessionId);
               io.to(sessionId).emit('logout-success');
               
@@ -106,11 +108,22 @@ class ConnectServices {
           }
         } else if (connection === 'open') {
           try {
+            const connectedPhoneNumber = client.user.id.split(':')[0];
+
+            const device = await DeviceListModel.findOne({ devicePhone: connectedPhoneNumber });
+            
+            if(!device){
+              io.to(sessionId).emit('error', `Phone number mismatch! Expected ${devicePhone}, but connected ${connectedPhoneNumber}. Session terminated.`);
+              this.clients.delete(sessionId);
+              await client.logout();
+              return null;
+            }
+
             if (mode === 'qr') {
               if (devicePhone !== null) {
                 await DeviceListModel.updateOne(
                   { devicePhone },
-                  { $set: { status: 'online' } }
+                  { $set: { status: 'online', reasonForDisconnect : null } }
                 );
                 io.to(sessionId).emit('connected', 'Device connected successfully!');
               }
@@ -121,6 +134,12 @@ class ConnectServices {
         }
       });
 
+      client.ev.on('disconnected', async (reason) => {
+        if (reason === "NAVIGATION") { 
+            console.log("User logged out from WhatsApp Web");
+            await this.sendLogoutEmail(userEmail);
+        }
+      });
       if (mode === 'message-processing') {
         client.ev.on('messages.upsert', ({ messages }) => {
           try {
@@ -214,6 +233,15 @@ class ConnectServices {
 
   async sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode,devicePhone) {
     try {
+
+      const client = await this.getClient(sessionId, io, userId, mode);
+
+      const [userOnWhatsApp] = await client.isOnWhatsApp(formattedPhoneNumber);
+
+      if (!userOnWhatsApp?.exists) {
+       console.log(`The phone number ${formattedPhoneNumber} is not registered on WhatsApp while sending Message`);
+       return null;
+      }
 
       const message = new Message({
         sessionId,

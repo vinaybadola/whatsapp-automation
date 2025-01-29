@@ -1,12 +1,8 @@
 import {connectServices} from '../services/connectServices.js';
-import { log } from '../../../utils/logger.js';
 import sessionModel from '../models/session-model.js';
 import {formatPhoneNumber} from '../../../helpers/message-helper.js';
-import mongoose from 'mongoose';
 import DeviceListModel from '../models/device-list-model.js';
 export default class WhatsAppConnect {
-  constructor() {
-  }
 
   startSession = async (req, res) => {
     const { sessionId,devicePhone } = req.body;
@@ -37,7 +33,10 @@ export default class WhatsAppConnect {
       await connectServices.createWhatsAppClient(sessionId, io,userId, devicePhone, mode);
       return res.status(200).json({ success: '👍 true', message: 'Session started successfully' });
     } catch (error) {
-      log.error(`An error occurred while starting WhatsApp session: ${error.message}`);
+      console.error(`An error occurred while starting WhatsApp session: ${error.message}`);
+      if(error instanceof Error){
+        return res.status(400).json({ success: '👎 false', error: error.message });
+      }
       return res.status(500).json({ success: '👎 false', error: error.message });
     }
   };
@@ -51,19 +50,19 @@ export default class WhatsAppConnect {
     if (!sessionId || !phoneNumber || !message || !devicePhone) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-
-    // sanitize the phone number
     const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
-
-    // fetch the user-id from session model
-
     let userId = req.user.id || req.user._id;
-   
     const mode = "message-processing";
-    await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone);
-      res.status(200).json({ message: 'Message is queued for sending' });
+    const sendData = await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone);
+    if(!sendData){
+      return res.status(400).json({ success: false, message: 'Reciever does not exist on whatsapp. Please try again' });
+    }
+    return res.status(200).json({success: true, message: 'Message is queued for sending' });
     }catch (error) {
       console.error('An error occurred while sending message in the controller :', error);
+      if(error instanceof Error){
+        return res.status(400).json({ success: false, error: error.message });
+      }
       res.status(500).json({ success: false,error: error.message });
     }
   };
