@@ -40,7 +40,7 @@ export async function processMessages() {
         Message.findByIdAndUpdate(messageId, { status: 'sent' }),
         messageTrackerModel.create({
           jobId: job.id,
-          sender: devicePhone,
+          senderId: devicePhone,
           receiverId: phoneNumber,
           status: 'sent',
           userId,
@@ -55,7 +55,7 @@ export async function processMessages() {
         Message.findByIdAndUpdate(messageId, { status: 'failed', reasonForFailure: error.message }),
         messageTrackerModel.create({
           jobId: job.id,
-          sender: devicePhone,
+          senderId: devicePhone,
           receiverId: phoneNumber,
           status: 'failed',
           error: error.message,
