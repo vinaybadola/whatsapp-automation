@@ -23,6 +23,12 @@ export default class DeviceListServices{
             if(!deviceData.userId){
                 throw new Error('Empty user id while creating device in service class');
             }
+
+            // append the 91 in the front of the number if number is of 10 digits 
+            if(deviceData.devicePhone.length === 10){
+                deviceData.devicePhone = `91${deviceData.devicePhone}`;
+            }
+
             // check if number already exist
             const checkExistingDeviceNumber = await this.deviceListRepository.getData({devicePhone : deviceData.devicePhone});
             if(checkExistingDeviceNumber.length > 0){

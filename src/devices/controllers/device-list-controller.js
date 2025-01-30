@@ -15,10 +15,6 @@ export default class DeviceListController {
         try{
             const deviceData = req.body;
             deviceData.userId = req.user._id || req.user.id;
-            const existingDevice = await this.deviceListRepository.getData({devicePhone: deviceData.devicePhone});
-            if(existingDevice.length > 0){
-                return this.errorResponseHandler('Device already exists', 400, res);
-            }
             const newDevice = await this.deviceListServices.createDevice(deviceData);
             if(!newDevice){
                 return this.errorResponseHandler('Error creating device', 400, res);
