@@ -227,16 +227,6 @@ class ConnectServices {
 
   async sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode,devicePhone) {
     try {
-
-      // const client = await this.getClient(sessionId, io, userId, mode);
-
-      // const userOnWhatsApp = await client.onWhatsApp(formattedPhoneNumber);
-
-      // if (!userOnWhatsApp || userOnWhatsApp.length === 0) {
-      //   console.log(`The phone number ${formattedPhoneNumber} is not registered on WhatsApp while sending Message`);
-      //   return null;
-      // }
-
       const message = new Message({
         sessionId,
         senderId: userId,
@@ -254,7 +244,8 @@ class ConnectServices {
         messageId: message._id,
         mode,
         sentVia: 'individual',
-        devicePhone
+        devicePhone,
+        userId
       });
 
       // return client;

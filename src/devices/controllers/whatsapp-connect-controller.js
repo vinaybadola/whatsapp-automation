@@ -53,10 +53,7 @@ export default class WhatsAppConnect {
     const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
     let userId = req.user.id || req.user._id;
     const mode = "message-processing";
-    const sendData = await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone);
-    if(!sendData){
-      return res.status(400).json({ success: false, message: 'Reciever does not exist on whatsapp. Please try again' });
-    }
+    await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone);
     return res.status(200).json({success: true, message: 'Message is queued for sending' });
     }catch (error) {
       console.error('An error occurred while sending message in the controller :', error);
