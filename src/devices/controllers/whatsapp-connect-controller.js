@@ -51,7 +51,7 @@ export default class WhatsAppConnect {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
-    let userId = req.user.id || req.user._id;
+    const userId = req.user?.id || req.user?._id || "678619aa40269dc5850b5063";
     const mode = "message-processing";
     await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone);
     return res.status(200).json({success: true, message: 'Message is queued for sending' });
@@ -129,15 +129,22 @@ export default class WhatsAppConnect {
 
   logout = async (req, res) => {
     try {
-      const { sessionId } = req.body;
+      const { sessionId, devicePhone } = req.body;
 
       if (!sessionId) {
         return res.status(400).json({ success: false, error: 'Session ID is required' });
       }
+      if (!devicePhone) {
+        return res.status(400).json({ success: false, error: 'Device Phone Number is required' });
+      }
+
+      const userMail = req.user?.email;
+      const userId = req.user?.id || req.user?._id;
+      const name = req.user?.name;
   
       const io = req.app.get('socketio');
 
-      const logout = await connectServices.logout(sessionId, io);
+      const logout = await connectServices.logout(sessionId, io, devicePhone, userMail, userId, name);
       if(!logout){
         return res.status(400).json({ success: false, error: 'Failed to logout or client already logged out' });
       }

@@ -1,6 +1,5 @@
 const socket = io('http://localhost:8000');
 
-// Check if a session is already active on page load
 const sessionId = localStorage.getItem('sessionId');
 const isConnected = localStorage.getItem('isConnected');
 
@@ -24,37 +23,12 @@ socket.on('connect', () => {
   document.getElementById('status').textContent = " ";
 });
 
-// document.getElementById('start-session').addEventListener('click', () => {
-//   console.log('Starting session with ID:', socket.id);
-//   let sessionId = localStorage.getItem('sessionId') || socket.id;
-//   localStorage.setItem('sessionId', sessionId);
-
-//  fetch('/api/device/connect/startSession', {
-//   method: 'POST',
-//   headers: { 
-//     'Content-Type': 'application/json',
-//     'Cookie': document.cookie
-//   },
-//   body: JSON.stringify({ sessionId, devicePhone :"919695215220" }),
-// })
-//     .then((response) => response.json())
-//     .then((data) => {
-//       console.log(data.message);
-//       document.getElementById('start-session').disabled = true;
-//       document.getElementById('send-message').disabled = false;
-//       document.getElementById("fetch-groups").disabled = false;
-//       localStorage.setItem('isConnected', 'true'); // Mark session as connected
-//     })
-//     .catch((error) => console.error(error));
-// });
-
 socket.on('qr-code', (qr) => {
   document.getElementById('qr-code').textContent = qr;
 });
 
 document.getElementById('send-message').addEventListener('click', () => {
   const sessionId = localStorage.getItem('sessionId');
-  // Ensure sessionId is set
   if (!sessionId) {
     console.error('Session not started. Please start the session first.');
     document.getElementById('status').textContent = 'Please start the session first.';
@@ -70,11 +44,10 @@ document.getElementById('send-message').addEventListener('click', () => {
     document.getElementById('status').textContent = 'Please enter both phone number and message.';
     return;
   }
-  const deptType = "67823f62488dc80b1dd316ee";
   fetch('/api/device/connect/send-message', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, phoneNumber, message, deptType }),
+    body: JSON.stringify({ sessionId, phoneNumber, message }),
   })
     .then((response) => response.json())
     .then((data) => {

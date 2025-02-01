@@ -1,20 +1,41 @@
 import { config } from 'dotenv';
-config();
+import fs from 'fs';
+
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+
+if (fs.existsSync(envFile)) {
+    config({ path: envFile });
+    console.log(`✅ Loaded environment variables from ${envFile}`);
+} else {
+    console.warn(`⚠️ Warning: ${envFile} file not found!`);
+}
+
 export const dbUri = process.env.MONGO_URI;
 export const port = process.env.PORT || 5000;
 export const jwtSecret = process.env.JWT_SECRET;
 export const dbName = process.env.DB_NAME;
 export const secretKey = process.env.SECRET_KEY;
 export const refreshTokenExpirationTime = 7 * 24 * 60 * 60 * 1000;
-export const frontendUri = process.env.FRONTEND_URL;
+export const frontendUri = process.env.FRONTEND_URL || "http://localhost:3000";
 export const environment = process.env.NODE_ENV;
+
+// Configurations for third party whatsmate API 
 export const wmateClientId = process.env.WMATE_CLIENT_ID;
 export const wmateClientSecret = process.env.WMATE_CLIENT_SECRET;
 export const instanceId = process.env.INSTANCE_ID;
 export const groupAdminNumber = process.env.GROUP_ADMIN_NUMBER;
 export const groupName = process.env.GROUP_NAME;
+
+// Configurations for sending emails
 export const adminMail = process.env.ADMIN_MAIL || "220suraj@gmail.com";
 export const adminPassword = process.env.ADMIN_PASSWORD || "jeclvxvofkknghbz";
 export const smtpHost = process.env.SMTP_HOST;
 export const smtpPort = process.env.SMTP_PORT;
-export const smptFrom = process.env.SMTP_FROM || "220suraj@gmail.com";
+export const smptFrom = process.env.SMTP_FROM;
+
+// configurations for attendance service
+export const externalMongoUri = process.env.EXTERNAL_MONGO_URI;
+export const dbUser = process.env.DB_USER;
+export const dbPassword = process.env.DB_PASSWORD;
+export const dbServer = process.env.DB_SERVER;
+export const databaseName = process.env.DATABASE_NAME;

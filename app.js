@@ -15,10 +15,17 @@ import thirdPartyRoutes from "./src/thirdParty/routes/third-party-route.js";
 import templateRoutes from "./src/templates/routes/template-route.js";
 import contactsRoutes from './src/messages/routes/contacts-route.js';
 import messageTrackRoutes from './src/messageTracker/routes/message-track-route.js';
+import {frontendUri} from "./config/envConfig.js";
 
 const app = express();
 const server = http.createServer(app); 
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: frontendUri, 
+    methods: ["GET", "POST"], 
+    credentials: true,
+  },
+});
 
 await connectDB();
 
