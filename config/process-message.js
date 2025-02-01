@@ -20,6 +20,7 @@ export async function processMessages() {
     const { sessionId, phoneNumber, messageContent, messageId, userId, mode, sentVia, devicePhone } = job.data;
     try {
       const client = await connectServices.getClient(sessionId, null, userId, mode);
+      await new Promise(resolve => setTimeout(resolve, 3000));
       if (!client) {
         throw new Error('Session not found');
       }

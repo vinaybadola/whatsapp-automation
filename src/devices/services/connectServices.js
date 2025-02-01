@@ -6,7 +6,6 @@ import Message from '../../messages/models/message-data-model.js';
 import messageQueue from '../../../config/queue.js';
 import fs from 'fs';
 import Email from '../../thirdParty/services/email-service.js';
-import User from '../../users/models/user-model.js';
 class ConnectServices {
   constructor() {
     this.clients = new Map();
@@ -94,10 +93,10 @@ class ConnectServices {
                 );
 
                 if (lastDisconnect?.error?.output?.statusCode === DisconnectReason.loggedOut) {
-                  await this.sendLogoutEmail(sessionId); // Send logout email only if manually logged out
+                  // await this.sendLogoutEmail(sessionId); // Send logout email only if manually logged out
                 }
 
-                await Session.deleteOne({ socketessionId: sessionId });
+                // await Session.deleteOne({ socketessionId: sessionId });
               }
               this.clients.delete(sessionId);
               io.to(sessionId).emit('logout-success');
@@ -113,7 +112,11 @@ class ConnectServices {
             const device = await DeviceListModel.findOne({ devicePhone: connectedPhoneNumber });
             
             if(!device){
-              io.to(sessionId).emit('error', `Phone number mismatch! Expected ${devicePhone}, but connected ${connectedPhoneNumber}. Session terminated.`);
+              io.to(sessionId).emit('device-mismatch', {
+                expected: devicePhone,
+                received: scannedDevicePhone,
+                message: `Device phone mismatch! Expected: ${devicePhone}, but scanned from: ${scannedDevicePhone}`,
+               });
               this.clients.delete(sessionId);
               await client.logout();
               return null;
@@ -134,15 +137,16 @@ class ConnectServices {
         }
       });
 
-      if (mode === 'message-processing') {
-        client.ev.on('messages.upsert', ({ messages }) => {
-          try {
-            console.log('Processing messages:', messages);
-          } catch (error) {
-            console.error('Error handling incoming messages in connect service class :', error);
-          }
-        });
-      }
+      // if (mode === 'message-processing') {
+      //   client.ev.on('messages.upsert', ({ messages }) => {
+      //     try {
+      //       console.log('Processing messages:', messages);
+      //       return;
+      //     } catch (error) {
+      //       console.error('Error handling incoming messages in connect service class :', error);
+      //     }
+      //   });
+      // }
 
       this.clients.set(sessionId, client);
       console.log('Client added to map for session:', sessionId);
@@ -153,8 +157,7 @@ class ConnectServices {
     }
   }
 
-  async getClient(sessionId, io, userId, mode, retries = 5, initialDelay = 1000) {
-    for (let attempt = 1; attempt <= retries; attempt++) {
+  async getClient(sessionId, io, userId, mode) {
       try {
         if (mode === 'qr' && !io) {
           throw new Error('io is required in QR mode');
@@ -166,7 +169,7 @@ class ConnectServices {
           return client;
         }
          else {
-          const clientFromDatabase = await Session.findOne({ socketessionId: sessionId , userId, is_connected: true });
+          const clientFromDatabase = await Session.findOne({ socketessionId: sessionId , user_id : userId, is_connected: true });
           if(!clientFromDatabase) {
             console.error(`Session not found in the database for session ID: ${sessionId}`);
             return null;
@@ -175,17 +178,10 @@ class ConnectServices {
           return await this.createWhatsAppClient(sessionId, io, userId, null, mode);
         }
       } catch (error) {
-        console.error(`Attempt ${attempt} failed:`, error.message);
-  
-        if (attempt === retries) {
-          throw new Error(`Failed to get client after ${retries} attempts: ${error.message}`);
-        }
-  
-        const delay = initialDelay * Math.pow(2, attempt - 1); // Exponential backoff
-        console.log(`Retrying in ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        console.error('Error getting WhatsApp client:', error);
+        throw new Error(`Failed to get WhatsApp client: ${error.message}`);
       }
-    }
+    
   }
 
   async deleteClient(sessionId) {
@@ -216,7 +212,8 @@ class ConnectServices {
         mode,
         sentVia: 'group',
         devicePhone
-      });
+      }, 
+      );
 
       return { success: true, message: `Message has been queued ${groupId}` };
     } catch (error) {
@@ -225,7 +222,7 @@ class ConnectServices {
     }
   }
 
-  async sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode,devicePhone) {
+  async sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone) {
     try {
       const message = new Message({
         sessionId,
@@ -236,7 +233,7 @@ class ConnectServices {
         message: messageContent,
       });
       await message.save();
-
+    
       await messageQueue.add('sendMessage', {
         sessionId,
         phoneNumber: formattedPhoneNumber,
@@ -247,7 +244,7 @@ class ConnectServices {
         devicePhone,
         userId
       });
-
+  
       // return client;
     } catch (error) {
       console.error('Error sending individual message:', error);
@@ -311,8 +308,8 @@ class ConnectServices {
     }
   }
 
-  async logout(sessionId, io) {
-    const client = this.clients.get(sessionId);
+  async logout(sessionId, io, devicePhone,userMail, userId, name) {
+    const client = this.getClient(sessionId);
     if (!client) {
       console.error('Client not found for session:', sessionId);
       return;
@@ -326,31 +323,18 @@ class ConnectServices {
     }
 
     // Send logout email
-    await this.sendLogoutEmail(sessionId);
+    await this.sendLogoutEmail(sessionId, devicePhone,userMail, userId, name);
 
     // Clean up session data
     const sessionPath = `./sessions/${sessionId}`;
     await fs.promises.rm(sessionPath, { recursive: true, force: true });
 
     try {
-      const sessionData = await Session.findOne({ socketessionId: sessionId });
-      if (!sessionData) {
-        console.error("Session not found:", sessionId);
-        throw new Error("Session not found");
-      }
-
-      const sendMailDevice = await DeviceListModel.findOne({ sessionId: sessionData._id });
-      if (!sendMailDevice) {
-        console.error("Device not found for session:", sessionId);
-        throw new Error("Device not found");
-      }
 
       await DeviceListModel.updateOne(
-        { devicePhone: sendMailDevice.devicePhone },
+        { devicePhone: devicePhone },
         { $set: { status: 'offline', reasonForDisconnect: DisconnectReason.loggedOut } },
       );
-
-      await Session.deleteOne({ socketessionId: sessionId });
 
       io.to(sessionId).emit('logout-success');
     } catch (error) {
@@ -382,7 +366,7 @@ class ConnectServices {
     }
   }
 
-  async sendLogoutEmail(sessionId) {
+  async sendLogoutEmail(sessionId, devicePhone,userMail, userId, name) {
     try {
       const sessionData = await Session.findOne({ socketessionId: sessionId });
       if (!sessionData) {
@@ -390,23 +374,23 @@ class ConnectServices {
         throw new Error("Session not found");
       }
 
-      const sendMailDevice = await DeviceListModel.findOne({ sessionId: sessionData._id });
-      if (!sendMailDevice) {
-        console.error("Device not found for session:", sessionId);
-        throw new Error("Device not found");
-      }
+      // const sendMailDevice = await DeviceListModel.findOne({ sessionId: sessionData._id });
+      // if (!sendMailDevice) {
+      //   console.error("Device not found for session:", sessionId);
+      //   throw new Error("Device not found");
+      // }
 
-      const userData = await User.findOne({ _id: sessionData.user_id });
-      if (!userData) {
-        console.error("User not found for session:", sessionId);
-        throw new Error("User not found");
-      }
+      // const userData = await User.findOne({ _id: sessionData.user_id });
+      // if (!userData) {
+      //   console.error("User not found for session:", sessionId);
+      //   throw new Error("User not found");
+      // }
 
       const data = {
-        userId: userData._id,
-        phoneNumber: sendMailDevice.devicePhone,
-        name: userData.name || "Example User",
-        mail: userData.email || "botvinay416@gmail.com",
+        userId: userId,
+        phoneNumber: devicePhone,
+        name: name || "Example User",
+        mail: userMail || "botvinay416@gmail.com",
         templateType: "device-logout"
       };
 

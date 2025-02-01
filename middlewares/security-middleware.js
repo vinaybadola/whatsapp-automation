@@ -6,6 +6,14 @@ import express from 'express';
 import  cookieParser  from 'cookie-parser';
 
 const securityMiddleware = (app) => {
+  
+  app.use(cors({
+    origin: "http://localhost:3000",
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], 
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true,
+  }));
+
   app.use(express.json());
   
   // Use URL-encoded parser middleware
@@ -14,12 +22,6 @@ const securityMiddleware = (app) => {
   app.use(compression());
   app.use(cookieParser());
   
-  app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], 
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    credentials: true,
-  }));
   
   app.use(helmet());
   

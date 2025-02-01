@@ -5,10 +5,10 @@ const messageQueue = new Queue('messageQueue', {
     host: '127.0.0.1', 
     port: 6379,        
   },
-  // limiter: {
-  //   max: 1,            
-  //   duration: 30000,
-  // },
+  limiter: {
+    max: 5,            
+    duration: 30000,
+  },
 });
 
 messageQueue.on('error', (err) => console.error('Queue error:', err));
