@@ -98,4 +98,23 @@ export default class UserController {
   
   };
 
+  deactivateAccount = async (req, res) => {
+    try{
+      const userId = req.user?._id || req.user?.id;
+      const user = await this.userRepository.findOne({ _id: userId });
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      user.status = false;
+      await user.save();
+    }
+    catch (error) {
+      console.error(`An unexpected error occurred while deactivating user account. ${error.message}`);
+      if (error instanceof Error) {
+        return res.status(400).json({ error: error.message });
+      }
+      return res.status(500).json({ success: false, error: `An unexpected error occurred while deactivating user account : ${error.message}` });
+    }
+  }
+
 }

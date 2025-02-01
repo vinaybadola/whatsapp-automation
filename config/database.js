@@ -8,7 +8,7 @@ const connectDB = async () => {
   try {
     if (cachedDb) return cachedDb;
 
-    environment === 'development' ? 
+    environment === 'DEVELOPMENT' ? 
     await connect(dbUri, { 
       serverSelectionTimeoutMS: 20000, 
       maxPoolSize: 10 
