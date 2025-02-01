@@ -1,5 +1,4 @@
-import { createConnection, connect, set } from 'mongoose';
-import { environment } from './envConfig.js';
+import {connect, set } from 'mongoose';
 import { dbUri } from './envConfig.js';
 
 let cachedDb = null;
@@ -7,16 +6,10 @@ let cachedDb = null;
 const connectDB = async () => {
   try {
     if (cachedDb) return cachedDb;
-
-    environment === 'DEVELOPMENT' ? 
     await connect(dbUri, { 
       serverSelectionTimeoutMS: 20000, 
       maxPoolSize: 10 
-    }) : 
-    await createConnection(dbUri, { 
-    serverSelectionTimeoutMS: 20000, 
-    maxPoolSize: 10 
-  });
+    }) 
     cachedDb = true
     console.log('MongoDB Connected');
   } catch (err) {
