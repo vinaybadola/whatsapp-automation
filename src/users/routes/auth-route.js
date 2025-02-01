@@ -12,5 +12,6 @@ const authController = new AuthController();
 router.post('/register', upload.single('profileImage'), validateNewUserData, handleValidationErrors, authController.register);
 router.post('/login', validateLoginData, handleValidationErrors,  authController.login);
 router.get('/logout', customAuth, authController.logout);
+router.patch("/deactivate-account", customAuth, authController.deactivateAccount);
 
 export default router;

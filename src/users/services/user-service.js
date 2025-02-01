@@ -7,8 +7,6 @@ export default class UserService {
 
   async getUserById(userId) {
     const user = await this.userRepository.getUserById(userId);
-    user.password = undefined;
-    user.tokens = undefined;
     return user;
   }
 
