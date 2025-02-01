@@ -2,7 +2,7 @@ import User from '../models/user-model.js';
 
 export default class UserRepository {
     async getUserById(userId) {
-      return await User.findById(userId).where('status').equals(true).select('status -password -tokens');
+      return await User.findById(userId);
     }
 
     async getUserByEmail(email) {
