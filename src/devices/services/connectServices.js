@@ -83,9 +83,9 @@ class ConnectServices {
             }, 5000);
           } else {
             try {
-              console.log('are we here?');
-              console.log('sessionId', sessionId);
+
               io.to(sessionId).emit('force-logout', sessionId);
+
               const sessionPath = `./sessions/${sessionId}`;
               await fs.promises.rm(sessionPath, { recursive: true, force: true });
 
@@ -96,14 +96,13 @@ class ConnectServices {
                 );
 
                 if (lastDisconnect?.error?.output?.statusCode === DisconnectReason.loggedOut) {
-                  // await this.sendLogoutEmail(sessionId); // Send logout email only if manually logged out
+                  const getUserData = await DeviceListModel.findOne({ devicePhone }).populate(
+                    'userId',
+                    'name email _id'
+                  );
+                  await this.sendLogoutEmail(sessionId, devicePhone, getUserData.userId.email, getUserData.userId._id, getUserData.userId.name);
                 }
-
-                // await Session.deleteOne({ socketessionId: sessionId });
               }
-              this.clients.delete(sessionId);
-              await Session.findOneAndDelete({ socketessionId: sessionId });
-              
             } catch (error) {
               console.error('Error handling logout or session during connection close :', error);
             }
@@ -113,13 +112,13 @@ class ConnectServices {
             const connectedPhoneNumber = client.user.id.split(':')[0];
 
             const device = await DeviceListModel.findOne({ devicePhone: connectedPhoneNumber });
-            
-            if(!device){
+
+            if (!device) {
               io.to(sessionId).emit('device-mismatch', {
                 expected: devicePhone,
                 received: scannedDevicePhone,
                 message: `Device phone mismatch! Expected: ${devicePhone}, but scanned from: ${scannedDevicePhone}`,
-               });
+              });
               this.clients.delete(sessionId);
               await client.logout();
               return null;
@@ -129,7 +128,7 @@ class ConnectServices {
               if (devicePhone !== null) {
                 await DeviceListModel.updateOne(
                   { devicePhone },
-                  { $set: { status: 'online', reasonForDisconnect : null } }
+                  { $set: { status: 'online', reasonForDisconnect: null } }
                 );
                 io.to(sessionId).emit('connected', 'Device connected successfully!');
               }
@@ -161,37 +160,37 @@ class ConnectServices {
   }
 
   async getClient(sessionId, io, userId, mode) {
-      try {
-        if (mode === 'qr' && !io) {
-          throw new Error('io is required in QR mode');
-        }
-  
-        if (this.clients.has(sessionId)) {
-          const client = this.clients.get(sessionId);
-          console.log('Returning Client from cache for session:', sessionId);
-          return client;
-        }
-         else {
-          const clientFromDatabase = await Session.findOne({ socketessionId: sessionId , user_id : userId, is_connected: true });
-          if(!clientFromDatabase) {
-            console.error(`Session not found in the database for session ID: ${sessionId}`);
-            return null;
-          }
-          console.log('Client not found. Creating a new one with session id:', sessionId);
-          return await this.createWhatsAppClient(sessionId, io, userId, null, mode);
-        }
-      } catch (error) {
-        console.error('Error getting WhatsApp client:', error);
-        throw new Error(`Failed to get WhatsApp client: ${error.message}`);
+    try {
+      if (mode === 'qr' && !io) {
+        throw new Error('io is required in QR mode');
       }
-    
+
+      if (this.clients.has(sessionId)) {
+        const client = this.clients.get(sessionId);
+        console.log('Returning Client from cache for session:', sessionId);
+        return client;
+      }
+      else {
+        const clientFromDatabase = await Session.findOne({ socketessionId: sessionId, user_id: userId, is_connected: true });
+        if (!clientFromDatabase) {
+          console.error(`Session not found in the database for session ID: ${sessionId}`);
+          return null;
+        }
+        console.log('Client not found. Creating a new one with session id:', sessionId);
+        return await this.createWhatsAppClient(sessionId, io, userId, null, mode);
+      }
+    } catch (error) {
+      console.error('Error getting WhatsApp client:', error);
+      throw new Error(`Failed to get WhatsApp client: ${error.message}`);
+    }
+
   }
 
   async deleteClient(sessionId) {
     this.clients.delete(sessionId);
   }
 
-  async sendMessageGroup(sessionId, io, groupId, messageContent, userId, mode,devicePhone) {
+  async sendMessageGroup(sessionId, io, groupId, messageContent, userId, mode, devicePhone) {
     try {
       if (!groupId) throw new Error('Group JID is required.');
       if (!messageContent) throw new Error('Message content is required.');
@@ -215,7 +214,7 @@ class ConnectServices {
         mode,
         sentVia: 'group',
         devicePhone
-      }, 
+      },
       );
 
       return { success: true, message: `Message has been queued ${groupId}` };
@@ -236,7 +235,7 @@ class ConnectServices {
         message: messageContent,
       });
       await message.save();
-    
+
       await messageQueue.add('sendMessage', {
         sessionId,
         phoneNumber: formattedPhoneNumber,
@@ -247,7 +246,7 @@ class ConnectServices {
         devicePhone,
         userId
       });
-  
+
       // return client;
     } catch (error) {
       console.error('Error sending individual message:', error);
@@ -277,77 +276,77 @@ class ConnectServices {
 
   async fetchParticipants(sessionId, groupId, userId, io, retries = 5, initialDelay = 1000) {
     for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            let client = this.clients.get(sessionId);
-            if (!client) {
-                console.log(`Client not found in memory. Initializing for session: ${sessionId}`);
-                client = await this.getClient(sessionId, io, userId, 'qr');
-                if (!client) {
-                    throw new Error('Client not found.');
-                }
-            }
-
-            // Fetch participants for a specific group
-            const metadata = await client.groupMetadata(groupId);
-            const participants = metadata.participants.map((participant) => ({
-                id: participant.id,
-                name: participant.name || participant.id,
-                phoneNumber: participant.id.split('@')[0],
-            }));
-
-            return participants; 
-        } catch (error) {
-            console.error(`Attempt ${attempt} failed:`, error.message);
-
-            if (attempt === retries) {
-                // If this was the last attempt, throw the error
-                throw new Error(`Failed to fetch participants after ${retries} attempts: ${error.message}`);
-            }
-
-            const delay = initialDelay * Math.pow(2, attempt - 1);
-            console.log(`Retrying in ${delay}ms...`);
-            await new Promise((resolve) => setTimeout(resolve, delay));
+      try {
+        let client = this.clients.get(sessionId);
+        if (!client) {
+          console.log(`Client not found in memory. Initializing for session: ${sessionId}`);
+          client = await this.getClient(sessionId, io, userId, 'qr');
+          if (!client) {
+            throw new Error('Client not found.');
+          }
         }
+
+        // Fetch participants for a specific group
+        const metadata = await client.groupMetadata(groupId);
+        const participants = metadata.participants.map((participant) => ({
+          id: participant.id,
+          name: participant.name || participant.id,
+          phoneNumber: participant.id.split('@')[0],
+        }));
+
+        return participants;
+      } catch (error) {
+        console.error(`Attempt ${attempt} failed:`, error.message);
+
+        if (attempt === retries) {
+          // If this was the last attempt, throw the error
+          throw new Error(`Failed to fetch participants after ${retries} attempts: ${error.message}`);
+        }
+
+        const delay = initialDelay * Math.pow(2, attempt - 1);
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
     }
   }
 
-    async logout(sessionId, io, devicePhone,userMail, userId, name) {
-      const client = await this.getClient(sessionId, io, userId, 'qr');
-      if (!client) {
-        console.error('Client not found for session:', sessionId);
-        return;
-      }
-
-      try {
-        // Log out the client from WhatsApp to disconnect the mobile device.
-        await client.logout();
-        console.log(`Client for session ${sessionId} logged out successfully.`);
-      } catch (error) {
-        console.error(`Error during client logout for session ${sessionId}:`, error);
-      }    
-
-      // Send logout email
-      await this.sendLogoutEmail(sessionId, devicePhone,userMail, userId, name);
-
-      // Clean up session data
-      const sessionPath = `./sessions/${sessionId}`;
-      await fs.promises.rm(sessionPath, { recursive: true, force: true });
-
-      try {
-
-        await DeviceListModel.updateOne(
-          { devicePhone: devicePhone },
-          { $set: { status: 'offline', sessionId: "", reasonForDisconnect: DisconnectReason.loggedOut } },
-        );
-
-        io.to(sessionId).emit('logout-success');
-      } catch (error) {
-        console.error("Error occurred while cleaning up session:", error.message);
-      }
-      finally {
-        this.clients.delete(sessionId);
-      }
+  async logout(sessionId, io, devicePhone, userMail, userId, name) {
+    const client = await this.getClient(sessionId, io, userId, 'qr');
+    if (!client) {
+      console.error('Client not found for session:', sessionId);
+      return;
     }
+
+    try {
+      // Log out the client from WhatsApp to disconnect the mobile device.
+      await client.logout();
+      console.log(`Client for session ${sessionId} logged out successfully.`);
+    } catch (error) {
+      console.error(`Error during client logout for session ${sessionId}:`, error);
+    }
+
+    // Send logout email
+    await this.sendLogoutEmail(sessionId, devicePhone, userMail, userId, name);
+
+    // Clean up session data
+    const sessionPath = `./sessions/${sessionId}`;
+    await fs.promises.rm(sessionPath, { recursive: true, force: true });
+
+    try {
+
+      await DeviceListModel.updateOne(
+        { devicePhone: devicePhone },
+        { $set: { status: 'offline', sessionId: "", reasonForDisconnect: DisconnectReason.loggedOut } },
+      );
+
+      io.to(sessionId).emit('logout-success');
+    } catch (error) {
+      console.error("Error occurred while cleaning up session:", error.message);
+    }
+    finally {
+      this.clients.delete(sessionId);
+    }
+  }
 
   async invalidateSession(sessionId) {
     try {
@@ -370,26 +369,13 @@ class ConnectServices {
     }
   }
 
-  async sendLogoutEmail(sessionId, devicePhone,userMail, userId, name) {
+  async sendLogoutEmail(sessionId, devicePhone, userMail, userId, name) {
     try {
       const sessionData = await Session.findOne({ socketessionId: sessionId });
       if (!sessionData) {
         console.error("Session not found:", sessionId);
         throw new Error("Session not found");
       }
-
-      // const sendMailDevice = await DeviceListModel.findOne({ sessionId: sessionData._id });
-      // if (!sendMailDevice) {
-      //   console.error("Device not found for session:", sessionId);
-      //   throw new Error("Device not found");
-      // }
-
-      // const userData = await User.findOne({ _id: sessionData.user_id });
-      // if (!userData) {
-      //   console.error("User not found for session:", sessionId);
-      //   throw new Error("User not found");
-      // }
-
       const data = {
         userId: userId,
         phoneNumber: devicePhone,
