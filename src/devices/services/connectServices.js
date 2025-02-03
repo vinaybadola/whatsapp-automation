@@ -83,13 +83,16 @@ class ConnectServices {
             }, 5000);
           } else {
             try {
+              console.log('are we here?');
+              console.log('sessionId', sessionId);
+              io.to(sessionId).emit('force-logout', sessionId);
               const sessionPath = `./sessions/${sessionId}`;
               await fs.promises.rm(sessionPath, { recursive: true, force: true });
 
               if (devicePhone !== null) {
                 await DeviceListModel.updateOne(
                   { devicePhone },
-                  { $set: { status: 'offline', reasonForDisconnect: DisconnectReason.loggedOut } }
+                  { $set: { status: 'offline', sessionId: "", reasonForDisconnect: DisconnectReason.loggedOut } }
                 );
 
                 if (lastDisconnect?.error?.output?.statusCode === DisconnectReason.loggedOut) {
@@ -99,7 +102,7 @@ class ConnectServices {
                 // await Session.deleteOne({ socketessionId: sessionId });
               }
               this.clients.delete(sessionId);
-              io.to(sessionId).emit('logout-success');
+              await Session.findOneAndDelete({ socketessionId: sessionId });
               
             } catch (error) {
               console.error('Error handling logout or session during connection close :', error);
@@ -308,42 +311,43 @@ class ConnectServices {
     }
   }
 
-  async logout(sessionId, io, devicePhone,userMail, userId, name) {
-    const client = this.getClient(sessionId);
-    if (!client) {
-      console.error('Client not found for session:', sessionId);
-      return;
+    async logout(sessionId, io, devicePhone,userMail, userId, name) {
+      const client = await this.getClient(sessionId, io, userId, 'qr');
+      if (!client) {
+        console.error('Client not found for session:', sessionId);
+        return;
+      }
+
+      try {
+        // Log out the client from WhatsApp to disconnect the mobile device.
+        await client.logout();
+        console.log(`Client for session ${sessionId} logged out successfully.`);
+      } catch (error) {
+        console.error(`Error during client logout for session ${sessionId}:`, error);
+      }    
+
+      // Send logout email
+      await this.sendLogoutEmail(sessionId, devicePhone,userMail, userId, name);
+
+      // Clean up session data
+      const sessionPath = `./sessions/${sessionId}`;
+      await fs.promises.rm(sessionPath, { recursive: true, force: true });
+
+      try {
+
+        await DeviceListModel.updateOne(
+          { devicePhone: devicePhone },
+          { $set: { status: 'offline', sessionId: "", reasonForDisconnect: DisconnectReason.loggedOut } },
+        );
+
+        io.to(sessionId).emit('logout-success');
+      } catch (error) {
+        console.error("Error occurred while cleaning up session:", error.message);
+      }
+      finally {
+        this.clients.delete(sessionId);
+      }
     }
-
-    try {
-      // Attempt to logout only if the connection is still open
-      await client.logout();
-    } catch (error) {
-      console.error('Error during logout:', error);
-    }
-
-    // Send logout email
-    await this.sendLogoutEmail(sessionId, devicePhone,userMail, userId, name);
-
-    // Clean up session data
-    const sessionPath = `./sessions/${sessionId}`;
-    await fs.promises.rm(sessionPath, { recursive: true, force: true });
-
-    try {
-
-      await DeviceListModel.updateOne(
-        { devicePhone: devicePhone },
-        { $set: { status: 'offline', reasonForDisconnect: DisconnectReason.loggedOut } },
-      );
-
-      io.to(sessionId).emit('logout-success');
-    } catch (error) {
-      console.error("Error occurred while cleaning up session:", error.message);
-    }
-    finally {
-      this.clients.delete(sessionId);
-    }
-  }
 
   async invalidateSession(sessionId) {
     try {

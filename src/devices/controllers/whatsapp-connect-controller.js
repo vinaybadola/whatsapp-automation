@@ -50,8 +50,8 @@ export default class WhatsAppConnect {
     if (!sessionId || !phoneNumber || !message || !devicePhone) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
-    const userId = req.user?.id || req.user?._id || "678619aa40269dc5850b5063";
+    const formattedPhoneNumber = formatPhoneNumber(phoneNumber); // Send message to this number
+    const userId = req.user?.id || req.user?._id;
     const mode = "message-processing";
     await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone);
     return res.status(200).json({success: true, message: 'Message is queued for sending' });
@@ -71,6 +71,14 @@ export default class WhatsAppConnect {
         return res.status(400).json({success: false, error: 'Missing required fields'});
       }
       const userId = req.user?.id || req.user?._id;
+      const getSessionData = await sessionModel.findOne({socketessionId : sessionId, is_connected : true});
+      if(!getSessionData){
+        return res.status(400).json({success: false, error: 'No session found'});
+      }
+      const devicePhone = await DeviceListModel.findOne({userId : userId , status : 'online', sessionId : getSessionData._id});
+      if(!devicePhone){
+        return res.status(400).json({success: false, error: 'No device found'});
+      }
       const mode = "message-processing";
       const io = req.app.get('socketio');
       const response = await connectServices.sendMessageGroup(sessionId,io,groupId,message,userId,mode,devicePhone);

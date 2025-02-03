@@ -1,8 +1,6 @@
 import { config } from 'dotenv';
 import fs from 'fs';
 
-console.log('process', process.env.NODE_ENV);
-
 const envFile = process.env.NODE_ENV === 'PRODUCTION' ? '.env.production' : '.env';
 
 if (fs.existsSync(envFile)) {

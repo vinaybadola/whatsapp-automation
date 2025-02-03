@@ -4,11 +4,12 @@ import compression from 'compression';
 import bodyParser from 'body-parser';
 import express from 'express';
 import  cookieParser  from 'cookie-parser';
+import {frontendUri} from "../config/envConfig.js";
 
 const securityMiddleware = (app) => {
   
   app.use(cors({
-    origin: "http://localhost:3000",
+    origin: [frontendUri, "https://www.gtel.in/"],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], 
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
