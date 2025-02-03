@@ -31,7 +31,8 @@ export default class DeviceListController {
     getDeviceList = async(req,res) =>{
         try{
             const {page, limit, skip} = paginate(req);
-            const {deviceList, totalItems, currentPageTotal} = await this.deviceListServices.getDeviceList(limit, skip);
+            const userId = req.user?._id || req.user?.id;
+            const {deviceList, totalItems, currentPageTotal} = await this.deviceListServices.getDeviceList(limit, skip, userId);
             if(!deviceList){
                 return this.errorResponseHandler('Error getting device list', 400, res);
             }
