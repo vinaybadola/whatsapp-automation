@@ -59,9 +59,9 @@ export default class DeviceListServices{
      * @param {*} limit
      */
 
-    async getDeviceList(limit, skip){
+    async getDeviceList(limit, skip, userId){
         try{
-            const {deviceList, totalItems} =  await this.deviceListRepository.getDeviceList(limit, skip);
+            const {deviceList, totalItems} =  await this.deviceListRepository.getDeviceList(limit, skip,userId );
             const currentPageTotal = deviceList.length;
             return {deviceList, totalItems, currentPageTotal};
 
