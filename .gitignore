@@ -4,6 +4,8 @@
 
 /sessions
 
+/uploads
+
 logs
 
 .env.production
