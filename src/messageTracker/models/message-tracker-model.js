@@ -10,7 +10,8 @@ const messageTrackerSchema = new Schema({
     userId : {type : String, required : true},
     mode : {type : String, required : true},
     sentVia : {type : String, enum : ['individual', 'group'], required : true},
-    message : {type : String, required : true}
+    message : {type : String, required : true},
+    lead_source : {type : String,default: 'whatsapp'},
 }, {timestamps: true});
 
 export default mongoose.model('MessageTracker', messageTrackerSchema);

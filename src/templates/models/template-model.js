@@ -5,6 +5,7 @@ const templateSchema = new Schema({
     subject : {type: String, required: true},
     template : {type: String, required: true},
     templateType : {type: String, required: true},
+    placeholders : {type: Array},
     isActive : {type: Boolean, default: true},
 }, {timestamps: true});
 

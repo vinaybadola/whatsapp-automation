@@ -17,7 +17,7 @@ export async function processMessages() {
     if (!job.data) {
       return 'Missing job data';
     }
-    const { sessionId, phoneNumber, messageContent, messageId, userId, mode, sentVia, devicePhone } = job.data;
+    const { sessionId, phoneNumber, messageContent, messageId, userId, mode, sentVia, devicePhone,source } = job.data;
     try {
       const client = await connectServices.getClient(sessionId, null, userId, mode);
       await new Promise(resolve => setTimeout(resolve, 3000));
@@ -48,6 +48,7 @@ export async function processMessages() {
           message: messageContent,
           mode,
           sentVia,
+          lead_source:source,
         }),
       ]);
     } catch (error) {
@@ -64,6 +65,7 @@ export async function processMessages() {
           message: messageContent,
           mode,
           sentVia,
+          lead_source:source,
         }),
       ]);
       throw error;

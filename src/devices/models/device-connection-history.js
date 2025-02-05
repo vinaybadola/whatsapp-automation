@@ -14,7 +14,7 @@ const deviceConnectionHistorySchema = new Schema({
     lastDisconnectedAt: { type: Date },
 }, {timestamps: true});
 
-deviceConnectionHistorySchema.index({createdAt : 1}, {expireAfterSeconds : 30 * 24 * 60 * 60});
+deviceConnectionHistorySchema.index({createdAt : 1}, {expireAfterSeconds : 60 * 24 * 60 * 60});
 
 const DeviceConnectionHistoryModel = mongoose.model('device-connection-history', deviceConnectionHistorySchema);
 

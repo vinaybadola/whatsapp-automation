@@ -17,7 +17,7 @@ import contactsRoutes from './src/messages/routes/contacts-route.js';
 import messageTrackRoutes from './src/messageTracker/routes/message-track-route.js';
 import {frontendUri} from "./config/envConfig.js";
 import externalAPiRoutes from './src/devices/routes/external-whatsapp-route.js';
-
+import groupConfigRoutes from './src/messages/routes/group-config-route.js';
 const app = express();
 const server = http.createServer(app); 
 const io = new Server(server, {
@@ -62,5 +62,6 @@ app.use("/api/template", templateRoutes);
 app.use("/api/contacts", contactsRoutes);
 app.use("/api/message-tracker", messageTrackRoutes);
 app.use("/api/external", externalAPiRoutes);
+app.use("/api/group-configuration", groupConfigRoutes);
 
 export { app, server, io };

@@ -3,7 +3,7 @@ import UserRepository from '../repositories/user-repository.js';
 import AuthService from '../services/auth-service.js';
 const authRepository = new AuthRepository();
 
-export default class UserController {
+export default class UserController {  //TODO:fixthis name to AuthController
   constructor() {
     this.userRepository = new UserRepository();
     this.authService = new AuthService(authRepository, this.userRepository);
@@ -64,7 +64,7 @@ export default class UserController {
       }
       res.cookie('authcookie', token , {
         httpOnly: true, 
-        secure: process.env.NODE_ENV === 'production', 
+        secure: process.env.NODE_ENV === 'PRODUCTION', 
         maxAge: 7 * 24 * 60 * 60 * 1000, 
       });
 

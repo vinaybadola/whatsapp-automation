@@ -2,12 +2,11 @@
 import userRoleRelationModel from "../../users/models/user-role-relation-model.js";
 import customRolesModel from "../../users/models/custom-roles-model.js";
 import sessionModel from "../models/session-model.js";
-import DeviceListModel from "../models/device-list-model.js";
-import {connectServices} from '../services/connectServices.js';
-import {formatPhoneNumber} from '../../../helpers/message-helper.js';
+import ExternalApiService from "../services/externa-api-services.js";
 
 export default class ExternalController{
     constructor(){
+        this.externalApiService = new ExternalApiService();
     }
 
     fetchUser = async(req,res)=>{
@@ -41,33 +40,13 @@ export default class ExternalController{
 
     sendIndividualMessage = async(req,res)=>{
         try{
-            const {apiToken, message, phoneNumber} = req.body;
+            const {apiToken, message, phoneNumber,source} = req.body;
+
             if(!apiToken || !message || !phoneNumber){
                 return res.status(400).json({success: false, error: 'Missing required fields'});
             }
-            const findUser = await DeviceListModel.findOne({
-                apiToken: apiToken,
-                reasonForDisconnect: { $ne: 401 }
-            }).populate({
-                path: 'sessionId',
-                select: 'socketessionId' 
-            });
 
-            if (!findUser) {
-                return res.status(400).json({ success: false, error: 'No user found for API token!' });
-            }
-            const sessionId = findUser.sessionId?.socketessionId;
-            if (!sessionId) {
-                return res.status(400).json({ success: false, error: 'No session found for this device!' });
-            }
-            
-            const userId = findUser.userId;
-            const devicePhone = findUser.devicePhone;
-            const mode = "message-processing";
-            const io = req.app.get('socketio');
-            const formattedPhoneNumber = formatPhoneNumber(phoneNumber); 
-            const messageContent = message;
-            const response = await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone);
+            const response = await this.externalApiService.sendIndividualMessage(apiToken, message, phoneNumber,source);
 
             return res.status(200).json({ success: true, message: response.message });
         }
@@ -82,35 +61,13 @@ export default class ExternalController{
 
     sendGroupMessage = async(req,res) =>{
         try{
-            const {groupId, apiToken, message} = req.body;
+            const {groupId, apiToken, message, source} = req.body;
             if(!groupId || !apiToken || !message){
                 return res.status(400).json({success: false, error: 'Missing required fields'});
             }
-            const findUser = await DeviceListModel.findOne({
-                apiToken: apiToken,
-                reasonForDisconnect: { $ne: 401 }
-            }).populate({
-                path: 'sessionId',  // This should match the field name in your schema
-                select: 'socketessionId'  // Fetch only the socketessionId field
-            });
-            
-            if (!findUser) {
-                return res.status(400).json({ success: false, error: 'No user found for API token!' });
-            }
-            
-            const sessionId = findUser.sessionId?.socketessionId;
-            if (!sessionId) {
-                return res.status(400).json({ success: false, error: 'No session found for this device!' });
-            }
-            
-            const userId = findUser.userId;
-            const mode = "message-processing";
             const io = req.app.get('socketio');
-            
-            const response = await connectServices.sendMessageGroup(
-                sessionId, io, groupId, message, userId, mode, findUser.devicePhone
-            );
-            
+            const response = await this.externalApiService.sendGroupMessage(groupId, apiToken, message,source, io);
+                        
             return res.status(200).json({ success: true, message: response.message });
         }
         catch(error){
