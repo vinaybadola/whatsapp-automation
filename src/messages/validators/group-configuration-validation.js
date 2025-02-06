@@ -34,20 +34,6 @@ const createValidator = [
         .isString()
         .withMessage("Group ID must be a string"),
 
-    body("templateId")
-        .trim()
-        .notEmpty()
-        .withMessage("Template ID is required")
-        .isMongoId()
-        .withMessage("Invalid Template ID format"),
-
-    body("type")
-        .trim()
-        .notEmpty()
-        .withMessage("Type is required")
-        .isString()
-        .withMessage("Type must be a string"),
-
     body("is_active")
         .optional()
         .isBoolean()

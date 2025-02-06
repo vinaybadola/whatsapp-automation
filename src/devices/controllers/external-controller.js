@@ -3,7 +3,8 @@ import userRoleRelationModel from "../../users/models/user-role-relation-model.j
 import customRolesModel from "../../users/models/custom-roles-model.js";
 import sessionModel from "../models/session-model.js";
 import ExternalApiService from "../services/externa-api-services.js";
-
+import Template from "../../templates/models/template-model.js";
+import {formatMessage} from "../../../helpers/message-helper.js";
 export default class ExternalController{
     constructor(){
         this.externalApiService = new ExternalApiService();
@@ -61,14 +62,32 @@ export default class ExternalController{
 
     sendGroupMessage = async(req,res) =>{
         try{
-            const {groupId, apiToken, message, source} = req.body;
-            if(!groupId || !apiToken || !message){
-                return res.status(400).json({success: false, error: 'Missing required fields'});
+            const {data, source, type} = req.body;
+
+            if(!data || !source || !type){
+                throw new Error('Missing required fields');
             }
+          
             const io = req.app.get('socketio');
-            const response = await this.externalApiService.sendGroupMessage(groupId, apiToken, message,source, io);
-                        
-            return res.status(200).json({ success: true, message: response.message });
+
+            const templateData = await Template.findOne({templateType :type}).populate('groupConfigurationId');
+
+            if(!templateData){
+                throw new Error("Group Configuration not found");
+            }
+
+            const groupId = templateData.groupConfigurationId?.groupId;
+            const apiToken = templateData.groupConfigurationId?.apiToken;
+
+            const template = templateData?.template;
+
+            const message = formatMessage(data,template);
+            const response = await this.externalApiService.sendGroupMessage({groupId, apiToken, message ,source, io});
+            if(response){
+                return res.status(200).json({ success: true, message: "Message has been Queued" });
+            }
+            
+            return res.status(400).json({success: false , message : "An error occurred while sending group message"});
         }
         catch(error){
             console.log(`An error occurred while sending group message in the controller : ${error.message}`);

@@ -33,7 +33,8 @@ export default class ExternalApiService{
     }
 
     sendGroupMessage = async(data) =>{
-        const {groupId, apiToken, message, io, source} = data;
+        try{
+        const {groupId, apiToken, message, source, io} = data;
         const findUser = await DeviceListModel.findOne({
             apiToken: apiToken,
             reasonForDisconnect: { $ne: 401 }
@@ -42,15 +43,15 @@ export default class ExternalApiService{
             select: 'socketessionId'
         });
         if (!findUser) {
-            return { success: false, error: 'No user found for API token!' };
+            throw new Error ("No user found for API token!");
         }
-        if(findUser?.status === "offline"){
-            return {success: false, error: 'User device is disconnected'};
+        if(findUser.status === "offline"){
+            throw new Error('User device is disconnected');
         }
 
-        const sessionId = findUser.sessionId?.socketessionId;
+        const sessionId = findUser.sessionId.socketessionId;
         if (!sessionId) {
-            return { success: false, error: 'No session found for this device!' };
+            throw new Error('No session found for this device!');
         }
         
         const userId = findUser.userId;
@@ -59,6 +60,10 @@ export default class ExternalApiService{
         const response = await connectServices.sendMessageGroup(
             sessionId, io, groupId, message, userId, mode, findUser.devicePhone,source
         );
-        return {success: true, message: response.message};
+        return response;
+    }
+    catch(error){
+        throw new Error(error.message);
+    }
     }
 }

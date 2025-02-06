@@ -27,9 +27,7 @@ export default class GroupConfigurationController {
     get = async(req,res)=>{
         try{
             const {id} = req.params;
-            const groupConfiguration = await groupConfigurationModel.findById(id).select("-__v -createdAt -updatedAt")
-            .populate('templateId', 'template')
-
+            const groupConfiguration = await groupConfigurationModel.findById(id).select("-__v -createdAt -updatedAt");
             if(!groupConfiguration){
                 return res.status(404).json({ success: false, message:"Group configuration not found"});
             }
@@ -47,8 +45,10 @@ export default class GroupConfigurationController {
     getAll = async(req,res)=>{
         try{
             const {page, limit, skip} = paginate(req);
-            const groupConfigurations = await groupConfigurationModel.find().skip(skip).limit(limit);
-
+            const {is_active} = req.query;
+            const isActive = is_active === 'false' ? false : true;
+            const groupConfigurations = await groupConfigurationModel.find({ is_active: isActive}).select("-__v -createdAt -updatedAt").skip(skip).limit(limit);
+            
             if(groupConfigurations.length === 0){
                 return res.status(404).json({success: false, error: 'Group configurations not found'});
             }

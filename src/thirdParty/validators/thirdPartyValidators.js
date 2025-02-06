@@ -24,5 +24,11 @@ export const processInterestedUserValidator = [
     body('source')
         .trim()
         .notEmpty().withMessage("Source is required")
-        .isString().withMessage("Source must be a string")
+        .isString().withMessage("Source must be a string"),
+    
+    body('type')
+        .trim()
+        .notEmpty().withMessage("Type is required")
+        .isString().withMessage("Type must be a string")
+        .isIn(['sales-query']).withMessage("Type must be 'sales-query'")
 ];

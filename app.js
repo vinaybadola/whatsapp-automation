@@ -22,7 +22,7 @@ const app = express();
 const server = http.createServer(app); 
 const io = new Server(server, {
   cors: {
-    origin: [frontendUri, 'http://localhost:3000', "https://www.gtel.in/"], 
+    origin: [frontendUri, 'http://localhost:3000', "https://www.gtel.in/", " /\.gtel\.in$/"], 
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], 
     credentials: true,
   },

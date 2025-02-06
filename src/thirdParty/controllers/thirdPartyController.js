@@ -24,13 +24,13 @@ export default class ThirdPartyController{
 
     processInterstedUser = async(req,res)=>{
         try{
-            const {phone, response, source} = req.body;
-            if(!phone || !response || !source){
-                throw new Error("Phone, response and source are required");
+            const {phone, response, source, type} = req.body;
+            if(!phone || !response || !source || !type){
+                throw new Error("Phone, response, type and source are required");
             }
             const io = req.app.get('socketio');
-            const data = await this.thirdPartyServices.sendGroupMessage({phone, response, source, io});
-            return res.status(200).json({success: data.success, message : data.message});
+            const data = await this.thirdPartyServices.sendGroupMessage({phone, response, source, io, type});
+            return res.status(200).json(data);
         }
         catch(error){
             console.log(`An unexpected Error occurred while processing interested user : ${error.message}`);
