@@ -14,3 +14,7 @@ export const formatPhoneNumber = (phoneNumber) => {
     // If the number is not valid, throw an error
     throw new Error('Invalid phone number format');
 }
+
+export const formatMessage = (data , template) => {
+    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => data[key] || match);
+}

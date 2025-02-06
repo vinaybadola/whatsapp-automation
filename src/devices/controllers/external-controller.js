@@ -2,12 +2,12 @@
 import userRoleRelationModel from "../../users/models/user-role-relation-model.js";
 import customRolesModel from "../../users/models/custom-roles-model.js";
 import sessionModel from "../models/session-model.js";
-import DeviceListModel from "../models/device-list-model.js";
-import {connectServices} from '../services/connectServices.js';
-import {formatPhoneNumber} from '../../../helpers/message-helper.js';
-
+import ExternalApiService from "../services/externa-api-services.js";
+import Template from "../../templates/models/template-model.js";
+import {formatMessage} from "../../../helpers/message-helper.js";
 export default class ExternalController{
     constructor(){
+        this.externalApiService = new ExternalApiService();
     }
 
     fetchUser = async(req,res)=>{
@@ -41,33 +41,13 @@ export default class ExternalController{
 
     sendIndividualMessage = async(req,res)=>{
         try{
-            const {apiToken, message, phoneNumber} = req.body;
+            const {apiToken, message, phoneNumber,source} = req.body;
+
             if(!apiToken || !message || !phoneNumber){
                 return res.status(400).json({success: false, error: 'Missing required fields'});
             }
-            const findUser = await DeviceListModel.findOne({
-                apiToken: apiToken,
-                reasonForDisconnect: { $ne: 401 }
-            }).populate({
-                path: 'sessionId',
-                select: 'socketessionId' 
-            });
 
-            if (!findUser) {
-                return res.status(400).json({ success: false, error: 'No user found for API token!' });
-            }
-            const sessionId = findUser.sessionId?.socketessionId;
-            if (!sessionId) {
-                return res.status(400).json({ success: false, error: 'No session found for this device!' });
-            }
-            
-            const userId = findUser.userId;
-            const devicePhone = findUser.devicePhone;
-            const mode = "message-processing";
-            const io = req.app.get('socketio');
-            const formattedPhoneNumber = formatPhoneNumber(phoneNumber); 
-            const messageContent = message;
-            const response = await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone);
+            const response = await this.externalApiService.sendIndividualMessage(apiToken, message, phoneNumber,source);
 
             return res.status(200).json({ success: true, message: response.message });
         }
@@ -82,36 +62,32 @@ export default class ExternalController{
 
     sendGroupMessage = async(req,res) =>{
         try{
-            const {groupId, apiToken, message} = req.body;
-            if(!groupId || !apiToken || !message){
-                return res.status(400).json({success: false, error: 'Missing required fields'});
+            const {data, source, type} = req.body;
+
+            if(!data || !source || !type){
+                throw new Error('Missing required fields');
             }
-            const findUser = await DeviceListModel.findOne({
-                apiToken: apiToken,
-                reasonForDisconnect: { $ne: 401 }
-            }).populate({
-                path: 'sessionId',  // This should match the field name in your schema
-                select: 'socketessionId'  // Fetch only the socketessionId field
-            });
-            
-            if (!findUser) {
-                return res.status(400).json({ success: false, error: 'No user found for API token!' });
-            }
-            
-            const sessionId = findUser.sessionId?.socketessionId;
-            if (!sessionId) {
-                return res.status(400).json({ success: false, error: 'No session found for this device!' });
-            }
-            
-            const userId = findUser.userId;
-            const mode = "message-processing";
+          
             const io = req.app.get('socketio');
+
+            const templateData = await Template.findOne({templateType :type}).populate('groupConfigurationId');
+
+            if(!templateData){
+                throw new Error("Group Configuration not found");
+            }
+
+            const groupId = templateData.groupConfigurationId?.groupId;
+            const apiToken = templateData.groupConfigurationId?.apiToken;
+
+            const template = templateData?.template;
+
+            const message = formatMessage(data,template);
+            const response = await this.externalApiService.sendGroupMessage({groupId, apiToken, message ,source, io});
+            if(response){
+                return res.status(200).json({ success: true, message: "Message has been Queued" });
+            }
             
-            const response = await connectServices.sendMessageGroup(
-                sessionId, io, groupId, message, userId, mode, findUser.devicePhone
-            );
-            
-            return res.status(200).json({ success: true, message: response.message });
+            return res.status(400).json({success: false , message : "An error occurred while sending group message"});
         }
         catch(error){
             console.log(`An error occurred while sending group message in the controller : ${error.message}`);

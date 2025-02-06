@@ -190,7 +190,7 @@ class ConnectServices {
     this.clients.delete(sessionId);
   }
 
-  async sendMessageGroup(sessionId, io, groupId, messageContent, userId, mode, devicePhone) {
+  async sendMessageGroup(sessionId, io, groupId, messageContent, userId, mode, devicePhone,source= "whatsapp") {
     try {
       if (!groupId) throw new Error('Group JID is required.');
       if (!messageContent) throw new Error('Message content is required.');
@@ -213,7 +213,8 @@ class ConnectServices {
         userId,
         mode,
         sentVia: 'group',
-        devicePhone
+        devicePhone,
+        source
       },
       );
 
@@ -224,7 +225,7 @@ class ConnectServices {
     }
   }
 
-  async sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone) {
+  async sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone, source= "whatsapp") {
     try {
       const message = new Message({
         sessionId,
@@ -244,7 +245,8 @@ class ConnectServices {
         mode,
         sentVia: 'individual',
         devicePhone,
-        userId
+        userId,
+        source
       });
 
       // return client;
