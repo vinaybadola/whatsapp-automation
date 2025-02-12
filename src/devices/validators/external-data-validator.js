@@ -12,5 +12,5 @@ export const userQueryValidation = [
     body('type')
         .notEmpty().withMessage('Type is required')
         .isString().withMessage('Type must be a string')
-        .isIn(['sales-query', 'website-inquiry', 'gtel-website-inquiry']).withMessage('Invalid type'),
+        .isIn(['sales-query', 'website-inquiry', 'gtel-website-inquiry', 'wibro-website-query']).withMessage('Invalid type'),
 ];

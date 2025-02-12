@@ -7,7 +7,7 @@ const PORT = port || 9000;
 
 // Root route
 app.get('/', (req, res) => {
-  res.send('Namaste World!');
+  return res.send('Namaste World!');
 });
 
 // Error handling middleware
@@ -17,13 +17,13 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ message: 'File upload error', error: err.message });
   } else if (err) {
     log.error(`Error: ${err.message}`);
-    res.status(500).json({ message: 'Internal Server Error', error: err.message });
+    return res.status(500).json({ message: 'Internal Server Error', error: err.message });
   }
   next();
 });
 
 app.all('*', (req, res) => {
-  res.status(404).json({ message: 'No Matching Route' });
+  return res.status(404).json({ message: 'No Matching Route' });
 });
 
 // Handle uncaught exceptions and rejections

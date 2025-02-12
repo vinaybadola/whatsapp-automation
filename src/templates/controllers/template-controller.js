@@ -25,7 +25,7 @@ export default class TemplateController {
         try {
             const { page, limit, skip } = paginate(req);
             const isActive = req.query.isActive === 'false' ? false : true;
-            const templates = await Template.find({ isActive }).limit(limit).skip(skip);
+            const templates = await Template.find({ isActive }).limit(limit).skip(skip).sort({ createdAt: -1 });
             const total = await Template.countDocuments({ isActive });
             const currentPageTotal = templates.length;
 

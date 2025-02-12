@@ -9,7 +9,7 @@ import {frontendUri} from "../config/envConfig.js";
 const securityMiddleware = (app) => {
   
   app.use(cors({
-    origin: [frontendUri, "https://www.gtel.in/", "http://localhost:3000"],
+    origin: [frontendUri, 'http://localhost:3000', "https://www.gtel.in/", " /\.gtel\.in$/", "103.145.169.229"],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], 
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
