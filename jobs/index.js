@@ -4,4 +4,4 @@ const runJobs = () => {
   runFetchUserAttendanceJob();
 };
 
-module.exports = runJobs;
+export default runJobs;

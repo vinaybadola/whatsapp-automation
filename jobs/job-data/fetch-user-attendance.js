@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { sql } from '../../config/mssql-database.js';
-import {processAttendanceData} from '../services/attendance-service';
+import AttendanceService from '../../src/attendance/services/attendance-service.js';
+const attendanceService = new AttendanceService();
 
 let isPrevJobRunning = false;
 
@@ -30,15 +31,23 @@ async function fetchDataFromPastHour() {
   }
 }
 
-export default runFetchUserAttendanceJob = () => {
+const runFetchUserAttendanceJob = () => {
   cron.schedule('*/1 * * * *', async () => {
     console.log('Running fetch-user-attendance job...');
     try {
-      const data = await fetchDataFromPastHour();
-      await processAttendanceData(data);
+      // const data = await fetchDataFromPastHour();
+      const data = [
+        {
+          EmpCode: 'WIBRO0065',
+          DateTime: '2025-02-17T14:30:42.000Z',
+          DeviceId: 'DELHI'
+        }
+      ];
+      await attendanceService.processAttendanceData(data);
     } catch (error) {
       console.error('Error in fetch-user-attendance job:', error);
     }
   });
 };
 
+export default runFetchUserAttendanceJob;

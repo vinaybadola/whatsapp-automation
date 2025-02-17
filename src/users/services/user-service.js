@@ -104,7 +104,7 @@ export default class UserService {
   }
 
   async getRoles(page, limit) {
-    return await customRolesModel.find().skip((page - 1) * limit).limit(limit);
+    return await customRolesModel.find().skip((page - 1) * limit).limit(limit).sort({createdAt: -1});
   }
 
   async getRoleById(id){
