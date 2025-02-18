@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import connectDB from './config/database.js';
 import securityMiddleware from './middlewares/security-middleware.js';
 import { processMessages } from './config/process-message.js';
+import runJobs from './jobs/index.js';
 import path from 'path';
 
 // Import routes
@@ -18,6 +19,7 @@ import messageTrackRoutes from './src/messageTracker/routes/message-track-route.
 import {frontendUri} from "./config/envConfig.js";
 import externalAPiRoutes from './src/devices/routes/external-whatsapp-route.js';
 import groupConfigRoutes from './src/messages/routes/group-config-route.js';
+
 const app = express();
 const server = http.createServer(app); 
 const io = new Server(server, {
@@ -51,7 +53,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(express.static(path.join(process.cwd(), 'public')));
 
 processMessages();
-
+// runJobs();
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);

@@ -9,3 +9,5 @@
 logs
 
 .env.production
+
+index.html

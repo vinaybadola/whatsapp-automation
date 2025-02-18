@@ -13,10 +13,10 @@ app.get('/', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
-    log.error(`Error: ${err.message}`);
+    console.error(`Error: ${err.message}`);
     return res.status(400).json({ message: 'File upload error', error: err.message });
   } else if (err) {
-    log.error(`Error: ${err.message}`);
+    console.error(`Error: ${err.message}`);
     return res.status(500).json({ message: 'Internal Server Error', error: err.message });
   }
   next();
@@ -41,15 +41,23 @@ process.on('unhandledRejection', (err) => {
   });
 });
 
-server.listen(PORT, (err) => {
-  // if (environment === 'DEVELOPMENT') {
-    log.info(`Server started on port ${PORT}`);
-  //}
-  if (err) {
-    log.error(`Error starting server: ${err.message}`);
-    process.exit(1);
-  }
-});
+const startServer = (port) => {
+  server.listen(port, (err) => {
+    if (err) {
+      if (err.code === 'EADDRINUSE') {
+        log.info(`Port ${port} is already in use. Trying port ${port + 1}...`);
+        startServer(port + 1); // Try the next port
+      } else {
+        log.error(`Error starting server: ${err.message}`);
+        process.exit(1);
+      }
+    } else {
+      log.info(`Server started on port ${port}`);
+    }
+  });
+};
+
+startServer(PORT);
 
 process.on('SIGINT', () => {
   log.info('SIGINT received. Shutting down gracefully...');

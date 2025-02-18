@@ -171,7 +171,9 @@ class ConnectServices {
         return client;
       }
       else {
+        console.log('userId', userId);
         const clientFromDatabase = await Session.findOne({ socketessionId: sessionId, user_id: userId, is_connected: true });
+        console.log('clientFromDatabase', clientFromDatabase);
         if (!clientFromDatabase) {
           console.error(`Session not found in the database for session ID: ${sessionId}`);
           return null;

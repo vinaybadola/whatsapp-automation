@@ -22,22 +22,49 @@ export default class ThirdPartyController{
         }
     }
 
-    processInterstedUser = async(req,res)=>{
-        try{
-            const {phone, response, source, type} = req.body;
-            if(!phone || !response || !source || !type){
-                throw new Error("Phone, response, type and source are required");
+    processInterstedUser = async (req, res) => {
+        try {
+            // Check if the event type is 'User initiated'
+            if (req.body.events.eventType === 'User initiated') {
+                console.log('response-body', req.body);
+                console.log('message', req.body.eventContent.message.button.text);
+                console.log('phone', req.body.eventContent.message.from);
+
+                 const response = req.body.eventContent.message.button.text;
+                 if (response.toLowerCase() === "interested") {
+                     const phone = req.body.eventContent.message.from;
+                     const source = "whatsapp";
+                     const type = "sales-query";
+ 
+    
+                    // Validate required fields
+                    if (!phone || !response || !source || !type) {
+                        throw new Error("Phone, response, type, and source are required");
+                    }
+    
+                    // Get the socket.io instance
+                    const io = req.app.get('socketio');
+    
+                    // Send the group message using the third-party service
+                    const data = await this.thirdPartyServices.sendGroupMessage({ phone, response, source, io, type });
+    
+                    return res.status(200).json(data);
+                } else {
+                    return res.status(202).json({ success: true, message: "Waiting for the user to respond with 'Interested'" });
+                }
+            } else {
+                return res.status(202).json({ success: true, message: "Waiting for a 'User initiated' event" });
             }
-            const io = req.app.get('socketio');
-            const data = await this.thirdPartyServices.sendGroupMessage({phone, response, source, io, type});
-            return res.status(200).json(data);
-        }
-        catch(error){
-            console.log(`An unexpected Error occurred while processing interested user : ${error.message}`);
-            if(error instanceof Error){
-                return res.status(400).json({success: false, error : error.message});
+        } catch (error) {
+            console.log(`An unexpected Error occurred while processing interested user: ${error.message}`);
+    
+            // Handle specific errors
+            if (error instanceof Error) {
+                return res.status(400).json({ success: false, error: error.message });
             }
-            return res.status(500).json({success: false, message: "Internal Server Error", error: error});
+    
+            // Handle generic errors
+            return res.status(500).json({ success: false, message: "Internal Server Error", error: error });
         }
-    }
+    };
 }

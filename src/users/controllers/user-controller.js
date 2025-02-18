@@ -2,12 +2,11 @@ import UserService from '../services/user-service.js';
 import UserRepository from '../repositories/user-repository.js';
 import { paginate, paginateReturn} from '../../../helpers/pagination.js';
 
-const userRepository = new UserRepository();
 
 export default class UserController {
     constructor() {
-        this.userService = new UserService(userRepository);
         this.userRepository = new UserRepository();
+        this.userService = new UserService(this.userRepository);
     }
 
     getUserById = async (req, res) => {
