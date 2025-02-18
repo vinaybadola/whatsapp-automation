@@ -52,7 +52,8 @@ export default class MessageSendingService{
             // call the external api to get the user phone number 
             for (const record of userData) {
                 // const phoneNumber = fetch(`http://10.253.71.78:5000/hrms/basicemployees/code/${record.EmpCode}`);
-                const phoneNumberResponse = await fetch("http://10.253.71.78:5000/hrms/basicemployees/code/GTEL00001");
+                const phoneNumberResponse = await fetch("http://10.253.71.78:5000/hrms/basicemployees/code/GTEL00001");  //TODO: change the hardcoded value to record.EmpCode
+                // const phoneNumberResponse = await fetch(`http://10.253.71.78:5000/hrms/basicemployees/code/${record.EmpCode}`);
 
                 if (!phoneNumberResponse.ok) {
                     console.log(`Failed to fetch data: ${phoneNumberResponse.status} ${phoneNumberResponse.statusText}`);

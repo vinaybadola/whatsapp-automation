@@ -1,7 +1,6 @@
 import DeviceListServices from '../services/device-list-services.js';
 import UserRepository from '../../users/repositories/user-repository.js';
 import DeviceListRepository from '../repositories/device-list-repository.js';
-import {log} from '../../../utils/logger.js';
 import { paginate, paginateReturn} from '../../../helpers/pagination.js';
 
 export default class DeviceListController {
@@ -102,7 +101,7 @@ export default class DeviceListController {
     }
 
     errorResponseHandler(errorMessage, ErrorStatusCode, res){
-        log.error(`Error: ${errorMessage}`);
+        console.error(`Error: ${errorMessage}`);
         return res.status(ErrorStatusCode).json({success: false,message: errorMessage });
     }
 }
