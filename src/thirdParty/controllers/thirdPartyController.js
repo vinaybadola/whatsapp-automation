@@ -32,11 +32,13 @@ export default class ThirdPartyController{
 
                  const response = req.body.eventContent.message.button.text;
                  if (response.toLowerCase() === "interested") {
-                     const phone = req.body.eventContent.message.from;
-                     const source = "whatsapp";
-                     const type = "sales-query";
+                    let phone = req.body.eventContent.message.from;
+                    if (!phone.startsWith('+')) {
+                         phone = '+' + phone;
+                    }
+                    const source = "whatsapp";
+                    const type = "sales-query";
  
-    
                     // Validate required fields
                     if (!phone || !response || !source || !type) {
                         throw new Error("Phone, response, type, and source are required");

@@ -5,6 +5,7 @@ import sessionModel from "../models/session-model.js";
 import ExternalApiService from "../services/externa-api-services.js";
 import Template from "../../templates/models/template-model.js";
 import {formatMessage} from "../../../helpers/message-helper.js";
+import {errorResponseHandler} from "../../../helpers/data-validation.js"
 export default class ExternalController{
     constructor(){
         this.externalApiService = new ExternalApiService();
@@ -95,6 +96,29 @@ export default class ExternalController{
                 return res.status(400).json({success: false, error: error.message});
             }
             return res.status(500).json({success: false, error: `An error occurred while sending group message : ${error.message}`});
+        }
+    }
+
+    connectExternalDevices = async(req,res)=>{
+        try{
+            const {sessionId, role, devicePhone} = req.body;
+
+            if(!sessionId || !role || !devicePhone){
+                return res.status(400).json({success: false, error: 'Missing required fields'});
+            }
+            
+            const io = req.app.get('socketio');
+            await this.externalApiService.connectExternalDevice({sessionId, role, devicePhone, io});
+
+            return res.status(200).json({success: true, message: 'Please scan the Qr code to connect the device'});
+        }
+        catch(error){
+            const message = `An error occurred while connecting external devices : ${error.message}`;
+
+            if(error instanceof Error){
+                return errorResponseHandler(error.message, 400, res);
+            }
+            return errorResponseHandler(message, 500, res);
         }
     }
 }
