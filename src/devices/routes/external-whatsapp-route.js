@@ -11,4 +11,6 @@ import { handleValidationErrors } from "../../../helpers/data-validation.js";
 router.post("/send-group-message", userQueryValidation, handleValidationErrors, externalController.sendGroupMessage);
 router.post("/send-individual-message", externalController.sendIndividualMessage);
 
+router.post("/connect-external-device", externalController.connectExternalDevices);
+
 export default router;

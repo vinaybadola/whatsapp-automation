@@ -4,6 +4,7 @@ import {formatPhoneNumber} from '../../../helpers/message-helper.js';
 import DeviceListModel from '../models/device-list-model.js';
 export default class WhatsAppConnect {
 
+  //TODO: make this clean and readable by seprating the code in service class
   startSession = async (req, res) => {
     const { sessionId,devicePhone } = req.body;
     const io = req.app.get('socketio');
@@ -11,7 +12,7 @@ export default class WhatsAppConnect {
     if (!sessionId) {
       return res.status(400).json({ error: 'Session ID is required' });
     }
-    const userId = req.user?.id || req.user?._id || "678619aa40269dc5850b5063";     
+    const userId = req.user?.id || req.user?._id || null;
     if (!devicePhone) {
       return res.status(400).json({ error: 'Device Phone Number is required' });
     }

@@ -176,16 +176,16 @@ function renderDevices(devices) {
 }
 
  // Start session for a device
- async function startSession(devicePhone) {
+ async function startSession(devicePhone = "8417900754" ) {
   const sessionId = socket.id;
   try {
-    const response = await fetch('/api/device/connect/startSession', {
+    const response = await fetch('/api/device/connect/connect-external-device', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
         'Cookie': document.cookie
       },
-      body: JSON.stringify({ sessionId, devicePhone }),
+      body: JSON.stringify({ sessionId, devicePhone, role : "HR-Department" }),
     });
     const data = await response.json();
     if (data.success) {
@@ -199,7 +199,7 @@ function renderDevices(devices) {
   }
 }
 
-fetchDevices();
+// fetchDevices();
 
 // Socket event listeners
 socket.on('qr-code', (qr) => {

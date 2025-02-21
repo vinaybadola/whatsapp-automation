@@ -39,3 +39,9 @@ export const dbUser = process.env.DB_USER;
 export const dbPassword = process.env.DB_PASSWORD;
 export const dbServer = process.env.DB_SERVER;
 export const databaseName = process.env.DATABASE_NAME;
+
+export const allowedOrigins = [frontendUri, 'http://localhost:3000', "https://www.gtel.in/", " /\.gtel\.in$/", "http://localhost:8003", "http://127.0.0.1:5500"];
+export const allowedMethods = ["GET", "POST", "PUT", "DELETE", "PATCH"];
+export const allowedCredentials = true;
+export const allowedHeaders = ["Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"];
+export const allowedExposedHeaders = ["Authorization"];
