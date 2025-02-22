@@ -9,7 +9,7 @@ import {allowedOrigins,allowedMethods,allowedCredentials,allowedHeaders,allowedE
 const securityMiddleware = (app) => {
   
   app.use(cors({
-    origin: allowedOrigins, 
+    origin: "*", 
     methods: allowedMethods, 
     credentials: allowedCredentials,
     allowedHeaders: allowedHeaders,

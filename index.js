@@ -1,6 +1,5 @@
 import { port, environment } from './config/envConfig.js';
 import { app, server } from './app.js'; // Import app and server from app.js
-import { log } from './utils/logger.js';
 import multer from 'multer';
 
 const PORT = port || 9000;
@@ -28,14 +27,14 @@ app.all('*', (req, res) => {
 
 // Handle uncaught exceptions and rejections
 process.on('uncaughtException', (err) => {
-  log.error(`Uncaught Exception: ${err.message}`);
+  console.error(`Uncaught Exception: ${err.message}`);
   server.close(() => {
     process.exit(1);
   });
 });
 
 process.on('unhandledRejection', (err) => {
-  log.error(`Unhandled Rejection: ${err.message}`);
+  console.error(`Unhandled Rejection: ${err.message}`);
   server.close(() => {
     process.exit(1);
   });
@@ -45,14 +44,14 @@ const startServer = (port) => {
   server.listen(port, (err) => {
     if (err) {
       if (err.code === 'EADDRINUSE') {
-        log.info(`Port ${port} is already in use. Trying port ${port + 1}...`);
+        console.info(`Port ${port} is already in use. Trying port ${port + 1}...`);
         startServer(port + 1); // Try the next port
       } else {
-        log.error(`Error starting server: ${err.message}`);
+        console.error(`Error starting server: ${err.message}`);
         process.exit(1);
       }
     } else {
-      log.info(`Server started on port ${port}`);
+      console.info(`Server started on port ${port}`);
     }
   });
 };
@@ -60,17 +59,17 @@ const startServer = (port) => {
 startServer(PORT);
 
 process.on('SIGINT', () => {
-  log.info('SIGINT received. Shutting down gracefully...');
+  console.info('SIGINT received. Shutting down gracefully...');
   server.close(() => {
-    log.info('Server closed.');
+    console.info('Server closed.');
     process.exit(0);
   });
 });
 
 process.on('SIGTERM', () => {
-  log.info('SIGTERM received. Shutting down gracefully...');
+  console.info('SIGTERM received. Shutting down gracefully...');
   server.close(() => {
-    log.info('Server closed.');
+    console.info('Server closed.');
     process.exit(0);
   });
 });
