@@ -20,6 +20,17 @@ export default class AttendanceService{
                     continue;
                 }
 
+                // if same time is already available in the database  then skip the record
+                const sameTimeRecord = await UserAttendance.findOne({
+                    employeeCode: record.EmpCode,
+                    userpunchInTime: record.DateTime
+                });
+
+                if(sameTimeRecord){
+                    console.log(`Employee ${record.EmpCode} has already punched at ${record.DateTime}`);
+                    continue;
+                }
+
                 // Parse shift timings 
                 const [shiftStartStr, shiftEndStr] = shiftTiming.shiftTime.split('-');
 
