@@ -15,10 +15,6 @@ export default class ThirdPartyServices{
                 throw new Error("Phone, response and source are required");
             }
 
-            if(response.trim().toLowerCase() !== "yes" && response.trim().toLowerCase() !== "no"){
-                throw new Error("Response should be either 'yes' or 'no'");
-            }
-
             const userRecord = await interstedUserModel.create({userPhone: phone, response: response, is_processed: false});
             const id = userRecord._id;
 

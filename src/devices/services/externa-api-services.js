@@ -79,8 +79,17 @@ export default class ExternalApiService{
     connectExternalDevice = async (data) => {
         let{ sessionId, role, devicePhone, io } = data;
 
-        if(devicePhone.length == 10){
+        console.log('typeee', typeof devicePhone);
+        if (typeof devicePhone === 'number') {
+            devicePhone = devicePhone.toString();
+        }
+
+        if (typeof devicePhone === 'string' && devicePhone.length === 10) {
             devicePhone = `91${devicePhone}`;
+        }
+
+        if(devicePhone.length > 12){
+            throw new Error('Invalid phone number');
         }
        
         let deviceName = role;
@@ -93,7 +102,6 @@ export default class ExternalApiService{
         let userId = null;
         console.log('devicePhone>>>', devicePhone);
         const phoneExists = await DeviceListModel.findOne({ devicePhone });
-        console.log('phoneExists', phoneExists);
         if (phoneExists) {
           if (phoneExists.status === 'online') {
             throw new Error('Phone number is already connected');
