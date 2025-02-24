@@ -49,6 +49,16 @@
             "date": 1740118249703,
             "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-02-21-daily.log",
             "hash": "0b6ba3aa2b3965054306b849f764187566a510b4b0a3db673046cb9becacdc30"
+        },
+        {
+            "date": 1740222046628,
+            "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-02-22-daily.log",
+            "hash": "cf4e70933de3ff381391e363810437b8e7638a21298dcc2a9061282cb3e70ad2"
+        },
+        {
+            "date": 1740377087808,
+            "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-02-24-daily.log",
+            "hash": "115a4b1c96b3244dd9ef31e598f1444e6778e8333df6b176a5091ccabe008e3e"
         }
     ],
     "hashType": "sha256"

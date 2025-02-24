@@ -85,6 +85,7 @@ class ConnectServices {
             try {
 
               io.to(sessionId).emit('force-logout', sessionId);
+              console.log('force-logout-user');
 
               const sessionPath = `./sessions/${sessionId}`;
               await fs.promises.rm(sessionPath, { recursive: true, force: true });
