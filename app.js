@@ -4,7 +4,7 @@ import { Server } from 'socket.io';
 import connectDB from './config/database.js';
 import securityMiddleware from './middlewares/security-middleware.js';
 import { processMessages } from './config/process-message.js';
-import "./jobs/job-data/run-failed-jobs.js"
+// import "./jobs/job-data/run-failed-jobs.js"
 import runJobs from './jobs/index.js';
 import {allowedOrigins,allowedMethods,allowedCredentials,allowedHeaders,allowedExposedHeaders} from "./config/envConfig.js";
 import path from 'path';
