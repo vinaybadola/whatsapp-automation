@@ -1,28 +1,35 @@
-import retryQueue from './retry-queue.js';
+import cron from 'node-cron';
 import messageQueue from '../../config/queue.js';
+import Message from '../../src/messages/models/message-data-model.js';
 
-async function isMessageQueueIdle(queue) {
-  const activeJobs = await queue.getActive();
-  return activeJobs.length === 0;
-}
-
-retryQueue.process('retryMessage', 5, async (job) => {
-  console.log(`Retrying job from retryQueue, job id: ${job.id}`);
-  
+cron.schedule('*/2 * * * *', async () => {
+  console.log('Cron job running: fetching failed jobs for today');
   try {
-    // Check if messageQueue is idle
-    const idle = await isMessageQueueIdle(messageQueue);
+    const failedJobs = await Message.find({
+      status: 'failed',
+      reasonForFailure: /connection closed/i,
+      createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+    }).populate('messageTrackerId'); 
     
-    if (idle) {
-      await messageQueue.add('sendMessage', job.data);
-      console.log(`Job requeued in messageQueue successfully.`);
+    if (failedJobs.length > 0) {
+      console.log(`Found ${failedJobs.length} failed jobs. Requeuing...`);
+      for (const job of failedJobs) {
+        await messageQueue.add('sendMessage', {
+          sessionId: job.sessionId,
+          phoneNumber: job.messageTrackerId.receiverId,
+          messageContent: job.message,
+          messageId: job._id,
+          userId: job.messageTrackerId.userId,
+          mode: job.messageTrackerId.mode,
+          sentVia: job.sentVia,
+          devicePhone: job.messageTrackerId.senderId,
+          source: job.messageTrackerId.lead_source,
+        });
+      }
     } else {
-      // If there are active jobs, re-add the job to the retryQueue with a delay (e.g., 1 minute)
-      console.log(`MessageQueue is busy. Delaying requeue of job ${job.id}`);
-      await retryQueue.add('retryMessage', job.data, { delay: 60000 });
+      console.log('No failed jobs to requeue at this time.');
     }
   } catch (error) {
-    console.error(`Failed to process retry job ${job.id}:`, error.message);
-    throw error;
+    console.error('Error in cron job:', error.message);
   }
 });

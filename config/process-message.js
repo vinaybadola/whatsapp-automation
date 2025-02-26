@@ -2,41 +2,36 @@ import messageQueue from './queue.js';
 import Message from '../src/messages/models/message-data-model.js';
 import { connectServices } from '../src/devices/services/connectServices.js';
 import messageTrackerModel from '../src/messageTracker/models/message-tracker-model.js';
-import retryQueue from '../jobs/job-data/retry-queue.js';
-
 export async function processMessages() {
   
-  messageQueue.on('completed', (job) => {
-    console.log(`Job ${job.id} completed`);
-  });
+  messageQueue.on('completed', (job) => console.log(`Job ${job.id} completed`));
+
 
   messageQueue.on('failed', async (job, error) => {
-    console.error(`Job ${job.id} failed:`, error.message);
+    console.error(`Job ${job.id} failed -from-here:`, error.message);
 
-    if (error.message.toLowerCase().includes('Connection closed')) {
-      console.log(`Job ${job.id} failed due to connection closed. Delegating to retryQueue...`);
-  
-      // Add the job to the retry queue with a delay (for example, 5 minutes = 300000 ms)
-      await retryQueue.add('retryMessage', job.data, {
-        delay: 300000,
-      });
+    if (error.message.toLowerCase().includes('connection closed')) {
+      console.log(`Job ${job.id} failed due to connection closed. Delegating to retryQueue...`);     
     }
-
   });
 
   messageQueue.process('sendMessage', 5, async (job) => {
     if (!job.data) {
       return 'Missing job data';
     }
+   
     const { sessionId, phoneNumber, messageContent, messageId, userId, mode, sentVia, devicePhone,source } = job.data;
+    console.log(`Processing job ${job.id} - Data:`, job.data);
     try {
-      if(sessionId === 'dummy-id'){
+      if (sessionId === 'dummy-id') {
+        console.log('Forcing connection closed error for dummy session');
         throw new Error('Connection closed');
       }
+
       const client = await connectServices.getClient(sessionId, null, userId, mode);
       await new Promise(resolve => setTimeout(resolve, 3000));
       if (!client) {
-        throw new Error('Connection closed');
+        throw new Error('Client not found !');
       }
 
       if (sentVia !== 'individual' && sentVia !== 'group') {
@@ -51,9 +46,9 @@ export async function processMessages() {
       }
 
       await client.sendMessage(recipientId, { text: messageContent });
-      await Promise.all([
-        Message.findByIdAndUpdate(messageId, { status: 'sent' }),
-        messageTrackerModel.create({
+      
+      const messageTracker = await messageTrackerModel.create({
+          sessionId ,
           jobId: job.id,
           senderId: devicePhone,
           receiverId: phoneNumber,
@@ -63,25 +58,31 @@ export async function processMessages() {
           mode,
           sentVia,
           lead_source:source,
-        }),
-      ]);
+          requeued: false,
+          retryCount: 0,
+          processed: true,
+        });
+        
+        await Message.findByIdAndUpdate(messageId,
+        { status: 'sent' , reasonForFailure: null , messageTrackerId : messageTracker._id});
+
     } catch (error) {
       console.error('Job failed:', error.message);
-      await Promise.all([
-        Message.findByIdAndUpdate(messageId, { status: 'failed', reasonForFailure: error.message }),
-        messageTrackerModel.create({
+      const isConnectionClosed = error.message.toLowerCase().includes('connection closed');
+        const messageTracker = await messageTrackerModel.create({
           jobId: job.id,
           senderId: devicePhone,
           receiverId: phoneNumber,
           status: 'failed',
           error: error.message,
+          requeued: isConnectionClosed,
           userId,
           message: messageContent,
           mode,
           sentVia,
-          lead_source:source,
-        }),
-      ]);
+          lead_source: source,
+        });
+        await Message.findByIdAndUpdate(messageId, { status: 'failed', reasonForFailure: error.message, messageTrackerId : messageTracker._id })
       throw error;
     }
   });

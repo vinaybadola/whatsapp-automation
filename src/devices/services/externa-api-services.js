@@ -51,6 +51,7 @@ export default class ExternalApiService{
             path: 'sessionId',
             select: 'socketessionId'
         });
+        console.log('findUser', findUser);
         if (!findUser) {
             throw new Error ("No user found for API token!");
         }
