@@ -33,7 +33,7 @@ export default class AttendanceService{
                 }
 
                 // Parse shift timings 
-                const [shiftStartStr, shiftEndStr] = shiftTiming.shiftTime.split('-');
+                const [shiftStartStr, shiftEndStr] = shiftTiming.shiftTime.split('-').map(s => s.trim()); // Trim spaces
 
                 const shiftDate = new Date(record.DateTime).toISOString().split('T')[0]; 
 
