@@ -3,6 +3,7 @@ import UserAttendance from "../../attendance/models/user-attendance-model.js";
 import {determinePunchType,checkPunchOutValidity,checkPunchInValidity } from "../../../helpers/attendance-helper.js";
 import Defaulters from "../models/user-defaulters-model.js";
 import MessageSendingService from "./message-sending-service.js";
+import {fetchDataFromPastHour} from '../../../jobs/job-data/fetch-user-attendance.js';
 export default class AttendanceService{
     constructor(){
         this.messageSendingService = new MessageSendingService();
@@ -196,5 +197,15 @@ export default class AttendanceService{
             console.log(`An error occurred while processing attendance data: ${error.message}`);
             return { success: false, error: error.message };
         }
-    };   
+    };  
+    
+    getAttendanceData = async (req, res) => {
+        try{
+            return res.status(200).json({ success: true, data: await fetchDataFromPastHour() });
+        }
+        catch(error){
+            console.log(`An error occurred while fetching attendance data: ${error.message}`);
+            return { success: false, error: error.message };
+        }
+    }
 }

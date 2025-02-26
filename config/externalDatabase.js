@@ -35,6 +35,6 @@ async function connectExternalMongo(dbName = 'shiftRoaster') {
 
 // **Connect to required databases**
 const shiftRoasterDB = await connectExternalMongo('shiftRoaster'); // For attendance
-const userDB = await connectExternalMongo('userDb'); // For users
+// const userDB = await connectExternalMongo('userDb'); // For users
 
-export { connectExternalMongo, shiftRoasterDB, userDB };
+export { connectExternalMongo, shiftRoasterDB };
