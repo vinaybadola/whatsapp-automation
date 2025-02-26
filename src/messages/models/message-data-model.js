@@ -10,6 +10,7 @@ const MessageSchema = new Schema({
     sentVia : {type : String, enum : ['group', 'individual']},
     groupId : {type : String},
     reasonForFailure: {type: String , default : null},
+    messageTrackerId : {type : Schema.Types.ObjectId, ref : 'MessageTracker', index : true},
 }, {timestamps: true});
 
 const Message = mongoose.model('message-data', MessageSchema);

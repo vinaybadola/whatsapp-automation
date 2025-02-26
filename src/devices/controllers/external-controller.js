@@ -64,6 +64,9 @@ export default class ExternalController{
     sendGroupMessage = async(req,res) =>{
         try{
             const {data, source, type} = req.body;
+            console.log('data-for-sending-group-message', data);
+            console.log('source-for-sending-group-message', source);
+            console.log('type-for-sending-group-message', type);
 
             if(!data || !source || !type){
                 throw new Error('Missing required fields');

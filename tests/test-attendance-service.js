@@ -1,5 +1,5 @@
-import AttendanceService from './attendance-service.js';
-import connectDB from '../../../config/database.js';
+import AttendanceService from '../src/attendance/services/attendance-service.js';
+import connectDB from '../config/database.js';
 
 // Connect to the database
 connectDB();

@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 const {Schema} = mongoose;
 
 const messageTrackerSchema = new Schema({
+    sessionId : {type : String},
     jobId : {type : String, required : true},
     senderId : {type : String, required : true},
     receiverId : {type : String, required : true},

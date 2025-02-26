@@ -7,7 +7,7 @@ const deviceListSchema = new Schema({
     status : {type : String , enum : ['online','offline'], default : 'offline'},
     apiToken : {type : String, required : true},
     userId : {type : Schema.Types.ObjectId, ref : 'User', required: true}, 
-    sessionId: { type: String, ref: 'Session' },
+    sessionId: { type: Schema.Types.ObjectId, ref: 'Session' },
     reasonForDisconnect: {type : String}
 },{timestamps: true});
 
