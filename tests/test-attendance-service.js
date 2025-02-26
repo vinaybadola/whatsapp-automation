@@ -10,7 +10,7 @@ const attendanceService = new AttendanceService();
 const testAttendanceData = [
   {
     EmpCode: 'WIBRO0065',
-    DateTime: '2025-02-17T14:30:42.000Z',
+    DateTime: '2025-02-26T16:58:42.000Z',
     DeviceId: 'DELHI'
   }
 ];
@@ -19,6 +19,7 @@ const testAttendanceData = [
 attendanceService.processAttendanceData(testAttendanceData)
   .then(results => {
     console.log('Test results:', results);
+    process.exit(0);
   })
   .catch(error => {
     console.error('Error during test:', error);

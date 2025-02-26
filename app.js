@@ -20,6 +20,7 @@ import contactsRoutes from './src/messages/routes/contacts-route.js';
 import messageTrackRoutes from './src/messageTracker/routes/message-track-route.js';
 import externalAPiRoutes from './src/devices/routes/external-whatsapp-route.js';
 import groupConfigRoutes from './src/messages/routes/group-config-route.js';
+import attendanceProcessingRoutes from "./src/attendance/routes/attendance-processing-route.js";
 
 const app = express();
 const server = http.createServer(app); 
@@ -56,7 +57,8 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(express.static(path.join(process.cwd(), 'public')));
 
 processMessages();
-// runJobs();
+runJobs();
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
@@ -68,5 +70,6 @@ app.use("/api/contacts", contactsRoutes);
 app.use("/api/message-tracker", messageTrackRoutes);
 app.use("/api/external", externalAPiRoutes);
 app.use("/api/group-configuration", groupConfigRoutes);
+app.use("/api/attendance", attendanceProcessingRoutes);
 
 export { app, server, io };

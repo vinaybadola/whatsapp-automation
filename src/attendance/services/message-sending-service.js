@@ -1,12 +1,13 @@
 import userRoleRelationModel from "../../users/models/user-role-relation-model.js";
 import customRolesModel from "../../users/models/custom-roles-model.js";
-import { userDB } from "../../../config/externalDatabase.js";
+import { shiftRoasterDB } from "../../../config/externalDatabase.js";
 import {connectServices} from '../../devices/services/connectServices.js';
 import {formatPhoneNumber} from '../../../helpers/message-helper.js';
 import DeviceListModel from "../../devices/models/device-list-model.js";
 import Template from "../../templates/models/template-model.js";
 import {formatMessage} from '../../../helpers/message-helper.js';
 import UserAttendance from "../../attendance/models/user-attendance-model.js";
+import moment from 'moment-timezone';
 
 export default class MessageSendingService{
     constructor(){
@@ -15,6 +16,10 @@ export default class MessageSendingService{
     sendMessage = async(userData)=>{
         try{
 
+             if(userData.length === 0){
+                console.log('No data found to send message');
+                return "No data found to send message";
+             }
             //TODO: if HR department not found then send message using ADMIN and inform the admin via email
 
             const findUserRoleId = await customRolesModel.findOne({name : "HR-Department", status : true}).select('_id');
@@ -44,6 +49,7 @@ export default class MessageSendingService{
 
             let templateCache = {};
             const fetchTemplatesFrom = ["employee-checkout", "employee-attendance-late", "employee-attendance-on-time" , "employee-attendance-half-day"];
+
             for (const templateType of fetchTemplatesFrom) {
                 const template = await Template.findOne({ templateType }).select('template');   
                 templateCache[templateType] = template.template;
@@ -51,56 +57,50 @@ export default class MessageSendingService{
 
             // call the external api to get the user phone number 
             for (const record of userData) {
-                // const phoneNumber = fetch(`http://10.253.71.78:5000/hrms/basicemployees/code/${record.EmpCode}`);
-                const phoneNumberResponse = await fetch("http://10.253.71.78:5000/hrms/basicemployees/code/GTEL00001");  //TODO: change the hardcoded value to record.EmpCode
-                // const phoneNumberResponse = await fetch(`http://10.253.71.78:5000/hrms/basicemployees/code/${record.EmpCode}`);
 
-                if (!phoneNumberResponse.ok) {
-                    console.log(`Failed to fetch data: ${phoneNumberResponse.status} ${phoneNumberResponse.statusText}`);
-                    continue;
-                }
+                const getUserData = await shiftRoasterDB.collection('excelshiftdatas').findOne({ employeeCode: record.employeeCode });
                 
-                const response = await phoneNumberResponse.json();  
-                if(!response.phone){            
-                    await UserAttendance.updateOne({ _id: record._id }, { $set: { reasonForNotSendingMessage: phoneNumberResponse.statusText } });
+                if (!getUserData && getUserData == "undefined" ) {
                     console.log(`Phone number not found for employee ${record.EmpCode}`);
+                    await UserAttendance.updateOne({ _id: record._id }, { $set: { reasonForNotSendingMessage: "Phone Number does not exist on shiftRoster database!" } });
                     continue;
                 }
-                const formattedPhoneNumber = formatPhoneNumber(response.phone);
+                const formattedPhoneNumber = formatPhoneNumber(getUserData.mobile);
                                
                 const sessionId = devicePhone.sessionId.socketessionId;
                 let messageContent = "";
 
+                const formattedTime = moment.parseZone(record.time).format('dddd, MMMM Do YYYY, h:mm A');
                 if(record.employeeLateMinutes > 0 && record.punchType ==="punch-in" && record.isHalfDayToday === false){
                     const data = {
-                        firstName: response.employee.firstName,
-                        time: record.time,
+                        firstName: getUserData.name,
+                        time: formattedTime,
                         employeeLateMinutes: record.employeeLateMinutes
                     }
                     messageContent = formatMessage(data, templateCache["employee-attendance-late"]);
                 }
                 else if(record.employeeLateMinutes == 0 && record.punchType ==="punch-in"){
                     const data = {
-                        firstName: response.employee.firstName,
-                        time: record.time
+                        firstName: getUserData.name,
+                        time: formattedTime
                     }
                     messageContent = formatMessage(data, templateCache["employee-attendance-on-time"]);
                 }
                 else if(record.punchType ==="punch-in" && record.isHalfDayToday === true){
                     const data = {
-                        firstName: response.employee.firstName,
-                        time: record.time
+                        firstName: getUserData.name,
+                        time: formattedTime
                     }
                     messageContent = formatMessage(data, templateCache["employee-attendance-half-day"]);
                 }
                 else if(record.punchType ==="punch-out"){
                     const data = {
-                        firstName: response.employee.firstName,
-                        time: record.time
+                        firstName: getUserData.name,
+                        // time: formattedTime
                     }
                     messageContent = formatMessage(data, templateCache["employee-checkout"]);
                 }
-                //  await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
+                await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
             }
 
             return "Job completed successfully";
