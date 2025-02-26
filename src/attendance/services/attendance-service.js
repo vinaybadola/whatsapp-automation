@@ -16,11 +16,15 @@ export default class AttendanceService{
             for (const record of attendanceData) {
                 const shiftTiming = await shiftRoasterDB.collection('shifttimings').findOne({ employeeCode: record.EmpCode });
 
-                if (shiftTiming.offday) {
+                if (!shiftTiming) {
+                    console.log(`Shift timing not found for employee ${record.EmpCode}`);
+                    continue;
+                }
+                
+                if (shiftTiming?.offday) { 
                     console.log(`Employee ${record.EmpCode} has a day off`);
                     continue;
                 }
-
                 // if same time is already available in the database  then skip the record
                 const sameTimeRecord = await UserAttendance.findOne({
                     employeeCode: record.EmpCode,
