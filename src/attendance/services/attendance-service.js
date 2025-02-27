@@ -132,54 +132,87 @@ export default class AttendanceService{
                     else {
                         existingAttendance.userPunchOutTime = punchTime;
                         existingAttendance.hasPunchedOut = true;
-                        existingAttendance.isValidPunch = true;
-                    
-                        let workedHours;
-                       
-                        const millisecondsWorked = Math.max(0, punchTime - existingAttendance.userpunchInTime);
-                        const totalMinutes = Math.floor(millisecondsWorked / (1000 * 60)); 
-                        const countingHours = Math.floor(totalMinutes / 60);
-                        const minutes = totalMinutes % 60;
-                        workedHours = `${countingHours} hours ${minutes} minutes`;
                         
-                        existingAttendance.totalHours = workedHours;
-                        existingAttendance.isAbsent = countingHours < 4;
-
-                        if(!existingAttendance.isAbsent && countingHours <= 9) {
-                            existingAttendance.isHalfDay = true;
-                        }
-                    }
-
-                    if(existingAttendance.actualPunchOutTime){
-                        const { isLeavingEarly, earlyBy } = checkPunchOutValidity(punchTime, existingAttendance.actualPunchOutTime);
-                        if (isLeavingEarly) {
-                            await Defaulters.updateOne(
-                                { employeeCode: record.EmpCode, date: startOfToday },
-                                {
-                                    $set: {
-                                        punchOutTime: punchTime,
-                                        earlyBy,
-                                        isLeavingEarly: true
-                                    }
-                                },
-                                { upsert: true }
-                            );
+                        if (!existingAttendance.isValidPunch && !existingAttendance.hasPunchedIn) {
+                            existingAttendance.userpunchInTime = punchTime;
+                            existingAttendance.totalHours = "0 hours 0 minutes"; 
                         }
                         else{
-                            await Defaulters.updateOne(
-                                { employeeCode: record.EmpCode, date: startOfToday },
-                                {
-                                    $set: {
-                                        punchOutTime: punchTime,
-                                        isLeavingEarly: false,
-                                        earlyBy: 0
-                                    }
-                                },
-                                
-                            );
+                            let workedHours;
+                            const millisecondsWorked = Math.max(0, punchTime - existingAttendance.userpunchInTime);
+                            const totalMinutes = Math.floor(millisecondsWorked / (1000 * 60)); 
+                            const countingHours = Math.floor(totalMinutes / 60);
+                            const minutes = totalMinutes % 60;
+                            workedHours = `${countingHours} hours ${minutes} minutes`;
+                            
+                            existingAttendance.totalHours = workedHours;
+                            existingAttendance.isAbsent = countingHours < 4;
+
+                            if(!existingAttendance.isAbsent && countingHours <= 9) {
+                                existingAttendance.isHalfDay = true;
+                            }
+
+                            existingAttendance.isValidPunch = !!existingAttendance.isValidPunch; 
                         }
-        
+                        if(existingAttendance.hasPunchedIn && existingAttendance.hasPunchedOut){
+                            existingAttendance.isValidPunch = true;
+                        }
                     }
+
+                    if (existingAttendance.actualPunchOutTime) {
+                        const { isLeavingEarly, earlyBy } = checkPunchOutValidity(punchTime, existingAttendance.actualPunchOutTime);
+                        
+                        const existingDefaulter = await Defaulters.findOne({
+                            employeeCode: record.EmpCode,
+                            date: startOfToday
+                        });
+                    
+                        if (isLeavingEarly) {
+                            if (existingDefaulter) {
+                                await Defaulters.updateOne(
+                                    { employeeCode: record.EmpCode, date: startOfToday },
+                                    {
+                                        $set: {
+                                            punchOutTime: punchTime, 
+                                            earlyBy,
+                                            isLeavingEarly: true
+                                        }
+                                    }
+                                );
+                            } else {
+                                await Defaulters.create({
+                                    employeeCode: record.EmpCode,
+                                    date: startOfToday,
+                                    punchOutTime: punchTime,
+                                    earlyBy,
+                                    isLeavingEarly: true
+                                });
+                            }
+                        } else {
+                            if (existingDefaulter) {
+                                await Defaulters.updateOne(
+                                    { employeeCode: record.EmpCode, date: startOfToday },
+                                    {
+                                        $set: {
+                                            punchOutTime: punchTime,
+                                            isLeavingEarly: false,
+                                            earlyBy: 0
+                                        }
+                                    }
+                                );
+                            } 
+                            // else {
+                            //     await Defaulters.create({
+                            //         employeeCode: record.EmpCode,
+                            //         date: startOfToday,
+                            //         punchOutTime: punchTime,
+                            //         isLeavingEarly: false,
+                            //         earlyBy: 0
+                            //     });
+                            // }
+                        }
+                    }
+                    
                     await existingAttendance.save();
                 }
                 processedResults.push({
