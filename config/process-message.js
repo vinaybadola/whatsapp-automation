@@ -15,7 +15,7 @@ export async function processMessages() {
     }
   });
 
-  messageQueue.process('sendMessage', 5, async (job) => {
+  messageQueue.process('sendMessage', 1, async (job) => {
     if (!job.data) {
       return 'Missing job data';
     }
@@ -46,6 +46,8 @@ export async function processMessages() {
       }
 
       await client.sendMessage(recipientId, { text: messageContent });
+
+      await new Promise(resolve => setTimeout(resolve, 4000));
       
       const messageTracker = await messageTrackerModel.create({
           sessionId ,

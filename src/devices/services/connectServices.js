@@ -249,7 +249,7 @@ class ConnectServices {
         devicePhone,
         userId,
         source
-      });
+      },{ removeOnComplete: true, removeOnFail: false });
 
       // return client;
     } catch (error) {
