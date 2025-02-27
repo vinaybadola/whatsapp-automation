@@ -57,7 +57,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(express.static(path.join(process.cwd(), 'public')));
 
 processMessages();
-runJobs();
+// runJobs();
 
 // Routes
 app.use('/api/auth', authRoutes);
