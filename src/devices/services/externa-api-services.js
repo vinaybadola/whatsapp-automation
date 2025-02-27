@@ -80,7 +80,6 @@ export default class ExternalApiService{
     connectExternalDevice = async (data) => {
         let{ sessionId, role, devicePhone, io } = data;
 
-        console.log('typeee', typeof devicePhone);
         if (typeof devicePhone === 'number') {
             devicePhone = devicePhone.toString();
         }
@@ -101,7 +100,6 @@ export default class ExternalApiService{
         }
       
         let userId = null;
-        console.log('devicePhone>>>', devicePhone);
         const phoneExists = await DeviceListModel.findOne({ devicePhone });
         if (phoneExists) {
           if (phoneExists.status === 'online') {

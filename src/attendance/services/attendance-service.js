@@ -123,30 +123,31 @@ export default class AttendanceService{
                             deviceId: record.DeviceId,
                             actualPunchOutTime: shiftEndTime,
                             userPunchOutTime: punchTime,
-                            totalHours: 0,
+                            totalHours: "0 hours 0 minutes",
                             isHalfDay: false,
                             isValidPunch : false,
                             hasPunchedOut : true
                         });
-                    } else {
+                    } 
+                    else {
                         existingAttendance.userPunchOutTime = punchTime;
                         existingAttendance.hasPunchedOut = true;
                         existingAttendance.isValidPunch = true;
-                    }
-                    const millisecondsWorked = punchTime - (existingAttendance.userpunchInTime || shiftStartTime);
-                    const totalMinutes = Math.floor(millisecondsWorked / (1000 * 60)); // Convert to total minutes
+                    
+                        let workedHours;
+                       
+                        const millisecondsWorked = Math.max(0, punchTime - existingAttendance.userpunchInTime);
+                        const totalMinutes = Math.floor(millisecondsWorked / (1000 * 60)); 
+                        const countingHours = Math.floor(totalMinutes / 60);
+                        const minutes = totalMinutes % 60;
+                        workedHours = `${countingHours} hours ${minutes} minutes`;
+                        
+                        existingAttendance.totalHours = workedHours;
+                        existingAttendance.isAbsent = countingHours < 4;
 
-                    const countingHours = Math.floor(totalMinutes / 60);
-                    const minutes = totalMinutes % 60;
-
-                    const workedHours = `${countingHours} hours ${minutes} minutes`;
-
-                    // const workedHours = (punchTime - (existingAttendance.userpunchInTime || shiftStartTime)) / (60 * 60 * 1000);
-                    existingAttendance.totalHours = workedHours;
-                    existingAttendance.isAbsent = countingHours < 4;
-
-                    if(!existingAttendance.isAbsent && countingHours <= 9) {
-                        existingAttendance.isHalfDay = true;
+                        if(!existingAttendance.isAbsent && countingHours <= 9) {
+                            existingAttendance.isHalfDay = true;
+                        }
                     }
 
                     if(existingAttendance.actualPunchOutTime){

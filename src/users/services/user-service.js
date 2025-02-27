@@ -76,7 +76,7 @@ export default class UserService {
       }
       
       // assing user role or change the user role according to new role 
-      const assignRole = await UserRoleRelationModel.findOneAndUpdate({userId: userId}, {roleId: roleId}, {new: true, upsert: true});
+      const assignRole = await UserRoleRelationModel.findOneAndUpdate({roleId: roleId}, {userId: userId}, {new: true, upsert: true});
       if(!assignRole){
         throw new Error('User role not updated');
       }
