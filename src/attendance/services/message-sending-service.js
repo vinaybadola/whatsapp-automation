@@ -100,7 +100,29 @@ export default class MessageSendingService{
                     }
                     messageContent = formatMessage(data, templateCache["employee-checkout"]);
                 }
-                await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
+                if(record.EmpCode === "GISPL063"){
+                    console.log("skip jasleen kaur!");
+                    continue;
+                    }
+                    if(record.EmpCode === "GTEL022"){
+                    console.log("skip sunil");
+                    continue;
+                    }
+                    
+                    if(record.EmpCode === "GISPL002"){
+                    console.log("skip pradeep");
+                    continue;
+                    }
+                    if(record.EmpCode === "HWIBRO099"){
+                    console.log('skip amandeep');
+                    continue;
+                    }
+                    if(record.EmpCode === "GISPL022"){
+                    console.log("SKip prashant");
+                    continue;
+                    }
+                    
+                // await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
             }
 
             return "Job completed successfully";

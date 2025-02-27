@@ -14,7 +14,7 @@ async function fetchDataFromPastHour() {
     const result = await sql.query`
       SELECT EmpCode, DateTime, DeviceId
       FROM dbo.Punchlogs
-      WHERE DateTime >= DATEADD(HOUR, -1, GETDATE())
+      WHERE DateTime >= DATEADD(MINUTE, -15, GETDATE())
       ORDER BY DateTime DESC
     `;
 
