@@ -100,7 +100,7 @@ export default class MessageSendingService{
                     }
                     messageContent = formatMessage(data, templateCache["employee-checkout"]);
                 }
-                // await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
+                await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
             }
 
             return "Job completed successfully";

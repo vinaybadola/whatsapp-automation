@@ -1,7 +1,6 @@
 import cron from 'node-cron';
 import { sql, connectMSSQL } from '../../config/mssql-database.js';
 
-
 let attendanceService;
 
 async function fetchDataFromPastHour() {
@@ -36,14 +35,14 @@ const runFetchUserAttendanceJob = () => {
         const { default: AttendanceService } = await import('../../src/attendance/services/attendance-service.js');
         attendanceService = new AttendanceService();
       }
-      // const data = await fetchDataFromPastHour();
-      const data = [
-        {
-          EmpCode: 'WIBRO0065',
-          DateTime: '2025-02-27T16:58:42.000Z',
-          DeviceId: 'DELHI'
-        }
-      ];
+      const data = await fetchDataFromPastHour();
+      // const data = [
+      //   {
+      //     EmpCode: 'WIBRO0065',
+      //     DateTime: '2025-02-27T16:58:42.000Z',
+      //     DeviceId: 'DELHI'
+      //   }
+      // ];
       await attendanceService.processAttendanceData(data);
     } catch (error) {
       console.error('Error in fetch-user-attendance job:', error);
