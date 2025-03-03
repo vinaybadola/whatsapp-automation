@@ -160,7 +160,7 @@ class ConnectServices {
     }
   }
 
-  async getClient(sessionId, io, userId, mode) {
+  async getClient(sessionId, io, userId, mode, queueProcess= false) {
     try {
       if (mode === 'qr' && !io) {
         throw new Error('io is required in QR mode');
@@ -168,6 +168,9 @@ class ConnectServices {
 
       if (this.clients.has(sessionId)) {
         const client = this.clients.get(sessionId);
+        if(queueProcess){
+          return {client , shouldWait : false};
+        }
         console.log('Returning Client from cache for session:', sessionId);
         return client;
       }
@@ -179,6 +182,10 @@ class ConnectServices {
           return null;
         }
         console.log('Client not found. Creating a new one with session id:', sessionId);
+        if(queueProcess){
+          const client = await this.createWhatsAppClient(sessionId, io, userId, null, mode);
+          return {client , shouldWait : true};
+        }
         return await this.createWhatsAppClient(sessionId, io, userId, null, mode);
       }
     } catch (error) {
@@ -249,7 +256,7 @@ class ConnectServices {
         devicePhone,
         userId,
         source
-      },{ removeOnComplete: true, removeOnFail: false });
+      },{ removeOnFail: false });
 
       // return client;
     } catch (error) {
