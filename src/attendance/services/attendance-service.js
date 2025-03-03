@@ -539,13 +539,20 @@ export default class AttendanceService {
     }
 
     processEmployeeAttendance = async (processedResults) => {
+        console.log(`Processing ${processedResults.length} employees...`);
         for (const record of processedResults) {
+            console.log(`Processing ${record.employeeCode} at ${record.punchTime}`);
             if (record.isNightShift) {
+                console.log(`${record.employeeCode} is a night shift employee, skipping.`);
                 continue;
                 // this.processNightShiftEmployee(record);
             }
             else {
-                await this.processDayShiftEmployee(record);
+                try {
+                    await this.processDayShiftEmployee(record);
+                } catch (error) {
+                    console.log(`Error processing ${record.employeeCode}: ${error.message}`);
+                }           
             }
         }
     }
