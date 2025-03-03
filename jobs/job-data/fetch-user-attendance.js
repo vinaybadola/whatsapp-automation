@@ -84,6 +84,10 @@ const runFetchUserAttendanceJob = () => {
       //   },
       // ];
       const mergedAttendance = mergePunches(data);
+      if(mergedAttendance.length === 0){
+        console.log('No new attendance data found');
+        return;
+      }
       await attendanceService.processShiftType(mergedAttendance);
     } catch (error) {
       console.error('Error in fetch-user-attendance job:', error);
