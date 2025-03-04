@@ -6,7 +6,7 @@ const messageQueue = new Queue('messageQueue', {
     port: 6379,        
   },
   limiter: {
-    max: 2,            
+    max: 5,            
     duration: 30000,
   },
 });

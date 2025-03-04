@@ -89,19 +89,7 @@ export default class AttendanceService {
                         userpunchInTime: { $gte: fifteenHoursPrior },
                     }).sort({ createdAt: -1 });
                 }
-                else if (!isNightShift) {
-                    // if the employee is day shift then check for only today's date attendance
-                    const shiftDateStr = new Date(utcPunchTime).toISOString().split('T')[0];
-                    const shiftDateStart = new Date(shiftDateStr);
-                    const shiftDateEnd = new Date(shiftDateStr);
-                    shiftDateEnd.setDate(shiftDateEnd.getDate() + 1);
-
-                    existingAttendance = await UserAttendance.findOne({
-                        employeeCode: record.EmpCode,
-                        userpunchInTime: { $gte: shiftDateStart, $lt: shiftDateEnd }
-                    });
-                }
-
+                
                 let employeeLateMinutes = 0;
                 let isHalfDayToday = false;
                 if (punchType === 'punch-in') {
@@ -292,18 +280,40 @@ export default class AttendanceService {
         }
     }
 
-    processNightShiftEmployee = async (attendanceData) => {
+    getSameTimeRecord = async (data) => {
+        const sameTimeRecord = await UserAttendance.findOne({
+            employeeCode: data.employeeCode,
+            $or: [
+                { userpunchInTime: new Date(data.punchTime) },
+                { userPunchOutTime: new Date(data.punchTime) }
+            ]
+        });
+        return sameTimeRecord;
+    }
+
+    processNightShiftEmployee = async (data) => {
+        try{
+            const sameTimeRecord = await this.getSameTimeRecord(data);
+
+            if (sameTimeRecord) {
+                console.log(`Employee ${data.employeeCode} has already punched at ${data.punchTime}`);
+                return;
+            }
+
+            const punchType = await determinePunchType(data.punchTime, data.utcPunchTime, data.shiftStartTime, data.shiftEndTime, data.employeeCode, data.isNightShift);
+            
+
+        }
+        catch(error){
+            console.log(`An error occurred while processing attendance data for night Employees : ${error.message}`);
+            throw error;
+        }
     }
 
     processDayShiftEmployee = async (data) => {
         try {
-            const sameTimeRecord = await UserAttendance.findOne({
-                employeeCode: data.employeeCode,
-                $or: [
-                    { userpunchInTime: new Date(data.punchTime) },
-                    { userPunchOutTime: new Date(data.punchTime) }
-                ]
-            });
+            const sameTimeRecord = await this.getSameTimeRecord(data);
+
             if (sameTimeRecord) {
                 console.log(`Employee ${data.employeeCode} has already punched at ${data.punchTime}`);
                 return;
@@ -489,7 +499,7 @@ export default class AttendanceService {
             });
         }
         catch (error) {
-            console.log(`An error occurred while processing attendance data: ${error.message}`);
+            console.log(`An error occurred while processing attendance data for day-shift employees: ${error.message}`);
             throw error;
         }
 
