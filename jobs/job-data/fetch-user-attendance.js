@@ -84,7 +84,7 @@ const runFetchUserAttendanceJob = () => {
         // },
       //];
 
-      if(testAttendanceData.length === 0){
+      if(data.length === 0){
         console.log('No new attendance data found');
         process.exit(0);
       }
