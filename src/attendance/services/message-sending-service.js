@@ -69,8 +69,10 @@ export default class MessageSendingService {
             const sessionId = devicePhone.sessionId.socketessionId;
             let messageContent = "";
 
-            const formattedTime = moment.utc(record.time).format('dddd, MMMM Do YYYY, h:mm A');
-            if (record.employeeLateMinutes > 0 && record.punchType === "punch-in" && record.isHalfDayToday === false) {
+            const formattedTime = moment.utc(record.time).format('dddd, MMMM Do YYYY, h:mm A'); // Change the time to the format of the message to be sent
+            const lateMinutes = parseInt(record.employeeLateMinutes) || 0;  // Change the late Minutes to integer to check for the condition of late minutes
+
+            if (lateMinutes != 0 && record.punchType === "punch-in" && record.isHalfDayToday === false) {
                 const data = {
                     firstName: getUserData.name,
                     time: formattedTime,
@@ -78,7 +80,7 @@ export default class MessageSendingService {
                 }
                 messageContent = formatMessage(data, templateCache["employee-attendance-late"]);
             }
-            else if (record.employeeLateMinutes == 0 && record.punchType === "punch-in") {
+            else if (lateMinutes == 0 && record.punchType === "punch-in") {
                 const data = {
                     firstName: getUserData.name,
                     time: formattedTime

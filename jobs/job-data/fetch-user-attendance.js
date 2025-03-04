@@ -3,7 +3,7 @@ import { sql, connectMSSQL } from '../../config/mssql-database.js';
 
 let attendanceService;
 
-async function fetchDataFromPastHour() {
+async function fetchDataFromPastHour(time = 40) {
   try {
     if (!attendanceService) {
       const { default: AttendanceService } = await import('../../src/attendance/services/attendance-service.js');
@@ -14,7 +14,7 @@ async function fetchDataFromPastHour() {
     const result = await sql.query`
       SELECT EmpCode, DateTime, DeviceId
       FROM dbo.Punchlogs
-      WHERE DateTime >= DATEADD(MINUTE, -15, GETDATE())
+      WHERE DateTime >= DATEADD(MINUTE, -${time}, GETDATE())
       ORDER BY DateTime DESC
     `;
 
@@ -52,7 +52,7 @@ function mergePunches(punchRecords) {
 }
 
 const runFetchUserAttendanceJob = () => {
-  cron.schedule('*/1 * * * *', async () => {
+  cron.schedule('*/10 * * * *', async () => {
     console.log('Running fetch-user-attendance job...');
 
     try {
@@ -61,34 +61,37 @@ const runFetchUserAttendanceJob = () => {
         attendanceService = new AttendanceService();
       }
       const data = await fetchDataFromPastHour();
-      // const data = [
-      //   {
-      //     EmpCode: 'WIBRO0065',
-      //     DateTime: '2025-03-03T10:03:02.000Z',
-      //     DeviceId: 'DELHI'
-      //   },
-      //   {
-      //     EmpCode: 'WIBRO0065',
-      //     DateTime: '2025-03-03T10:03:10.000Z',
-      //     DeviceId: 'DELHI'
-      //   },
-      //   {
-      //     EmpCode: 'WIBRO0065',
-      //     DateTime: '2025-03-03T10:03:20.000Z',
-      //     DeviceId: 'DELHI'
-      //   },
-      //   {
-      //     EmpCode: 'WIBRO0065',
-      //     DateTime: '2025-03-03T10:04:40.000Z',
-      //     DeviceId: 'DELHI'
-      //   },
-      // ];
-      const mergedAttendance = mergePunches(data);
-      
-      if(mergedAttendance === "undefined" || mergedAttendance.length === 0){
+      //const data = [
+        // {
+        //   EmpCode: 'WIBRO0065',
+        //   DateTime: '2025-03-03T10:03:02.000Z',
+        //   DeviceId: 'DELHI'
+        // },
+        // {
+        //   EmpCode: 'WIBRO0065',
+        //   DateTime: '2025-03-03T10:03:10.000Z',
+        //   DeviceId: 'DELHI'
+        // },
+        // {
+        //   EmpCode: 'WIBRO0065',
+        //   DateTime: '2025-03-03T10:03:20.000Z',
+        //   DeviceId: 'DELHI'
+        // },
+        // {
+        //   EmpCode: 'WIBRO0065',
+        //   DateTime: '2025-03-03T10:04:40.000Z',
+        //   DeviceId: 'DELHI'
+        // },
+      //];
+
+      if(testAttendanceData.length === 0){
         console.log('No new attendance data found');
-        return;
+        process.exit(0);
       }
+
+      const mergedAttendance = mergePunches(data);
+      console.log('Merged attendance:', mergedAttendance);
+
       await attendanceService.processShiftType(mergedAttendance);
     } catch (error) {
       console.error('Error in fetch-user-attendance job:', error);
