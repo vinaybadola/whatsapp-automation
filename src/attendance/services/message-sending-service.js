@@ -103,7 +103,6 @@ export default class MessageSendingService {
                 }
                 messageContent = formatMessage(data, templateCache["employee-checkout"]);
             }
-            console.log('messageContent>>>', messageContent);
             await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
             return "Job completed successfully";
         }

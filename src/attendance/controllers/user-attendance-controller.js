@@ -107,7 +107,7 @@ export default class UserAttendanceController {
     getAllUserAttendanceData = async (req, res) => {
         try {
             const { page,limit,skip } = paginate(req);
-            
+
             const query = {};
 
             if (req.query.hasPunchedIn) {
@@ -127,6 +127,35 @@ export default class UserAttendanceController {
             }
             if (req.query.deviceId) {
                 query.deviceId = req.query.deviceId;
+            }
+
+            // today date data 
+            if (req.query.today) {
+                const today = new Date();
+                query.userpunchInTime = {
+                    $gte: new Date(today.setHours(0, 0, 0, 0)).toISOString(),
+                    $lt: new Date(today.setHours(23, 59, 59, 999)).toISOString()
+                };
+            }
+
+            // Custom date range 
+            if (req.query.startDate && req.query.endDate) {
+                query.userpunchInTime = {
+                    $gte: new Date(req.query.startDate).toISOString()
+                };
+                query.userPunchOutTime = {
+                    $lt: new Date(req.query.endDate).toISOString()
+                };
+            }
+
+            // For Particular employee
+            if (req.query.employeeCode) {
+                query.employeeCode = req.query.employeeCode;
+            }
+
+            // For night shift and day shift 
+            if (req.query.shift) {
+                query.shift = req.query.shift;
             }
         
             const attendanceData = await UserAttendance.find(query).skip(skip).limit(limit);
@@ -180,7 +209,7 @@ export default class UserAttendanceController {
 
             // Check if employee is late and update Defaulters list
             const punchInThreshold = new Date(actualPunchInTime);
-            punchInThreshold.setMinutes(punchInThreshold.getMinutes() + 10); // 10 min grace period
+            punchInThreshold.setMinutes(punchInThreshold.getMinutes() + 10); 
 
             if (new Date(userpunchInTime) > punchInThreshold) {
                 await Defaulters.updateOne(
