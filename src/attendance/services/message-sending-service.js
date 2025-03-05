@@ -55,8 +55,6 @@ export default class MessageSendingService {
                 templateCache[templateType] = template.template;
             }
 
-            console.log('userData>>>', record);
-
             const getUserData = await shiftRoasterDB.collection('excelshiftdatas').findOne({ employeeCode: record.employeeCode });
 
             if (!getUserData && getUserData == "undefined") {
@@ -106,7 +104,7 @@ export default class MessageSendingService {
                 messageContent = formatMessage(data, templateCache["employee-checkout"]);
             }
             console.log('messageContent>>>', messageContent);
-            // await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
+            await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
             return "Job completed successfully";
         }
         catch (error) {

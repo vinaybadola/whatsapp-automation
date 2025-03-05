@@ -10,7 +10,7 @@ export default class UserAttendanceController {
      */
     getUserAttendanceData = async (req, res) => {
         try {
-            const { employeeCode, filterType, startDate, endDate } = req.query;
+            const { employeeCode, filterType= "day", startDate, endDate } = req.query;
 
             if (!employeeCode) {
                 return errorResponseHandler("Employee code is required", 400, res);
@@ -107,11 +107,32 @@ export default class UserAttendanceController {
     getAllUserAttendanceData = async (req, res) => {
         try {
             const { page,limit,skip } = paginate(req);
+            
+            const query = {};
 
-            const attendanceData = await UserAttendance.find().skip(skip).limit(limit);
-            const total = await UserAttendance.countDocuments();
+            if (req.query.hasPunchedIn) {
+                query.hasPunchedIn = req.query.hasPunchedIn === "true"; // Convert to Boolean
+            }
+            if (req.query.hasPunchedOut) {
+                query.hasPunchedOut = req.query.hasPunchedOut === "true";
+            }
+            if (req.query.isValidPunch) {
+                query.isValidPunch = req.query.isValidPunch === "true";
+            }
+            if (req.query.isHalfDay) {
+                query.isHalfDay = req.query.isHalfDay === "true";
+            }
+            if (req.query.isAbsent) {
+                query.isAbsent = req.query.isAbsent === "true";
+            }
+            if (req.query.deviceId) {
+                query.deviceId = req.query.deviceId;
+            }
+        
+            const attendanceData = await UserAttendance.find(query).skip(skip).limit(limit);
+            const total = await UserAttendance.countDocuments(query);
             const pagination = paginateReturn(page, limit, total, attendanceData.length);
-
+        
             return res.status(200).json({ success: true, data: attendanceData, pagination });
 
         } catch (error) {
