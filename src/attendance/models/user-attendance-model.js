@@ -17,7 +17,8 @@ const userAttendanceSchema = new Schema({
     hasPunchedOut : {type:Boolean, default : false},
     isValidPunch : {type:Boolean, default : false},
     reasonForNotSendingMessage : {type:String, default : null},
-    hasProcessedToday : {type:Boolean, default : false},
+    isNightShift : {type:Boolean, default : false},
+    isDayShift : {type:Boolean, default : false},
 }, {timestamps: true});
 
 const UserAttendance = mongoose.model('User-attendance', userAttendanceSchema);

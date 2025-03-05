@@ -5,6 +5,7 @@ import Defaulters from "../models/user-defaulters-model.js";
 import MessageSendingService from "./message-sending-service.js";
 import { fetchDataFromPastHour } from '../../../jobs/job-data/fetch-user-attendance.js';
 import RawAttendance from "../models/raw-attendance-model.js";
+import { v4 as uuidv4 } from 'uuid';
 export default class AttendanceService {
     constructor() {
         this.messageSendingService = new MessageSendingService();
@@ -353,7 +354,9 @@ export default class AttendanceService {
                         isTodayOff: data.isTodayOff,
                         totalHours: 0,
                         isHalfDay: false,
-                        hasPunchedIn: true
+                        hasPunchedIn: true,
+                        isNightShift: false,
+                        isDayShift: true,
                     });
                 } else {
                     existingAttendance.userpunchInTime = punchTime;
@@ -404,7 +407,9 @@ export default class AttendanceService {
                         totalHours: "0 hours 0 minutes",
                         isHalfDay: false,
                         isValidPunch: false,
-                        hasPunchedOut: true
+                        hasPunchedOut: true,
+                        isNightShift: false,
+                        isDayShift: true,
                     });
                 }
                 else {
@@ -555,7 +560,12 @@ export default class AttendanceService {
     }
 
     processEmployeeAttendance = async (processedResults) => {
+        if(processedResults.length === 0){
+            console.log('No attendance data found to be processed!');
+            return;
+        }
         console.log(`Processing ${processedResults.length} employees...`);
+
         for (const record of processedResults) {
             console.log(`Processing ${record.employeeCode} at ${record.punchTime}`);
             if (record.isNightShift) {
