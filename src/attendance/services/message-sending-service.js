@@ -70,9 +70,14 @@ export default class MessageSendingService {
             let messageContent = "";
 
             const formattedTime = moment.utc(record.time).format('dddd, MMMM Do YYYY, h:mm A'); // Change the time to the format of the message to be sent
-            const lateMinutes = parseInt(record.employeeLateMinutes) || 0;  // Change the late Minutes to integer to check for the condition of late minutes
-
-            if (lateMinutes != 0 && record.punchType === "punch-in" && record.isHalfDayToday === false) {
+            let lateMinutes = 0;
+            if(record.employeeLateMinutes === 0){
+                lateMinutes = 0;
+            }
+            else{
+                lateMinutes = this.extractMinutes(record.employeeLateMinutes);  // Change the late Minutes to integer to check for the condition of late minutes
+            }    
+            if (lateMinutes > 35 && record.punchType === "punch-in" && record.isHalfDayToday === false) {
                 const data = {
                     firstName: getUserData.name,
                     time: formattedTime,
@@ -80,7 +85,7 @@ export default class MessageSendingService {
                 }
                 messageContent = formatMessage(data, templateCache["employee-attendance-late"]);
             }
-            else if (lateMinutes == 0 && record.punchType === "punch-in") {
+            else if (lateMinutes <= 35 && record.punchType === "punch-in") {
                 const data = {
                     firstName: getUserData.name,
                     time: formattedTime
@@ -100,7 +105,8 @@ export default class MessageSendingService {
                 }
                 messageContent = formatMessage(data, templateCache["employee-checkout"]);
             }
-            await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
+            console.log('messageContent>>>', messageContent);
+            // await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
             return "Job completed successfully";
         }
         catch (error) {
@@ -108,4 +114,13 @@ export default class MessageSendingService {
         }
     }
 
+    extractMinutes(timeString) {
+        const match = timeString.match(/(\d+)\s*hours?\s*(\d*)\s*minutes?/);
+        if (!match) return 0; // Agar match na mile toh default 0 return kar de
+    
+        const hours = parseInt(match[1]) || 0;
+        const minutes = parseInt(match[2]) || 0;
+    
+        return (hours * 60) + minutes; 
+    }
 }

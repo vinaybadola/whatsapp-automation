@@ -18,7 +18,6 @@ async function fetchDataFromPastHour(time = 40) {
       ORDER BY DateTime DESC
     `;
 
-    console.log('Fetched data from the past hour:', result.recordset);
     return result.recordset;
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -60,29 +59,29 @@ const runFetchUserAttendanceJob = () => {
         const { default: AttendanceService } = await import('../../src/attendance/services/attendance-service.js');
         attendanceService = new AttendanceService();
       }
-      const data = await fetchDataFromPastHour();
-      //const data = [
-        // {
-        //   EmpCode: 'WIBRO0065',
-        //   DateTime: '2025-03-03T10:03:02.000Z',
-        //   DeviceId: 'DELHI'
-        // },
-        // {
-        //   EmpCode: 'WIBRO0065',
-        //   DateTime: '2025-03-03T10:03:10.000Z',
-        //   DeviceId: 'DELHI'
-        // },
-        // {
-        //   EmpCode: 'WIBRO0065',
-        //   DateTime: '2025-03-03T10:03:20.000Z',
-        //   DeviceId: 'DELHI'
-        // },
-        // {
-        //   EmpCode: 'WIBRO0065',
-        //   DateTime: '2025-03-03T10:04:40.000Z',
-        //   DeviceId: 'DELHI'
-        // },
-      //];
+      //const data = await fetchDataFromPastHour();
+      const data = [
+        {
+          EmpCode: 'WIBRO0065',
+          DateTime: '2025-03-05T10:03:02.000Z',
+          DeviceId: 'DELHI'
+        },
+        {
+          EmpCode: 'WIBRO0065',
+          DateTime: '2025-03-05T10:03:10.000Z',
+          DeviceId: 'DELHI'
+        },
+        {
+          EmpCode: 'WIBRO0065',
+          DateTime: '2025-03-05T10:03:20.000Z',
+          DeviceId: 'DELHI'
+        },
+        {
+          EmpCode: 'WIBRO0065',
+          DateTime: '2025-03-05T10:04:40.000Z',
+          DeviceId: 'DELHI'
+        },
+      ];
 
       if(data.length === 0){
         console.log('No new attendance data found');
@@ -90,9 +89,12 @@ const runFetchUserAttendanceJob = () => {
       }
 
       const mergedAttendance = mergePunches(data);
+
       console.log('Merged attendance:', mergedAttendance);
 
-      await attendanceService.processShiftType(mergedAttendance);
+      const processedData = await attendanceService.processRawData(mergedAttendance);
+
+      await attendanceService.processShiftType(processedData);
     } catch (error) {
       console.error('Error in fetch-user-attendance job:', error);
     }

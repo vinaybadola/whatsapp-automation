@@ -4,6 +4,7 @@ import { determinePunchType, checkPunchOutValidity, checkPunchInValidity } from 
 import Defaulters from "../models/user-defaulters-model.js";
 import MessageSendingService from "./message-sending-service.js";
 import { fetchDataFromPastHour } from '../../../jobs/job-data/fetch-user-attendance.js';
+import RawAttendance from "../models/raw-attendance-model.js";
 export default class AttendanceService {
     constructor() {
         this.messageSendingService = new MessageSendingService();
@@ -36,7 +37,7 @@ export default class AttendanceService {
                 });
 
                 if (sameTimeRecord) {
-                    console.log(`Employee ${record.EmpCode} has already punched at ${record.DateTime}`);
+                    console.log(`Same Time Record found for Employee ${record.EmpCode}  at ${record.DateTime} so skipping the record`);
                     continue;
                 }
 
@@ -296,7 +297,7 @@ export default class AttendanceService {
             const sameTimeRecord = await this.getSameTimeRecord(data);
 
             if (sameTimeRecord) {
-                console.log(`Employee ${data.employeeCode} has already punched at ${data.punchTime}`);
+                console.log(`Night Shift Employee ${data.employeeCode} has already punched at ${data.punchTime} so skipping the record`);
                 return;
             }
 
@@ -315,7 +316,7 @@ export default class AttendanceService {
             const sameTimeRecord = await this.getSameTimeRecord(data);
 
             if (sameTimeRecord) {
-                console.log(`Employee ${data.employeeCode} has already punched at ${data.punchTime}`);
+                console.log(`Day Shift Employee ${data.employeeCode} has already punched at ${data.punchTime} so skipping the record`);
                 return;
             }
 
@@ -506,6 +507,11 @@ export default class AttendanceService {
     }
 
     processShiftType = async (attendanceData) => {
+
+        if(attendanceData.length === 0 || !attendanceData){
+            console.log('No attendance data found');
+            return 'No attendance data found to be processed!';
+        }
         const processedResults = [];
 
         for (const record of attendanceData) {
@@ -568,5 +574,61 @@ export default class AttendanceService {
     }
 
     defaulterEmployeeProcess = async (record) => {
+    }
+
+    processRawData = async (attendanceData) => {
+        try{
+            if (!attendanceData || attendanceData.length === 0) {
+                console.log("No attendance data received.");
+                return;
+            }    
+
+            // The logic is straightforward: when we receive the raw data, we'll extract the datetime and match it with the userAttendance model.
+            // If the userPunchInTime or userPunchOutTime is the same, we'll skip the record. Otherwise, we'll store the record in the rawAttendance model.
+            // This will pass to the process Attendance function to process the attendance data.
+
+            const processedResults = [];
+
+            for (const record of attendanceData) {
+                const punchTime = new Date(record.DateTime);
+
+                const punchTimeISO = punchTime.toISOString();
+
+                const sameTimeRecord = await UserAttendance.findOne({
+                    employeeCode: record.EmpCode,
+                    $or: [
+                        { userpunchInTime: punchTimeISO },
+                        { userPunchOutTime: punchTimeISO }
+                    ]
+                });
+                if (sameTimeRecord) {
+                    console.log(`Same Time Record has found during raw processing of Employee ${record.EmpCode} at ${record.DateTime} so skipping the record`);
+                    // we can also set the status false for the record of employeeID and dateTime 
+                    // to avoid the duplicate record in the future
+                    await RawAttendance.updateOne({ employeeId: record.EmpCode, dateTime: punchTime },
+                        { status: false },
+                        { upsert: true }
+                    );
+                    continue;
+                }
+
+                await RawAttendance.updateOne(
+                    { employeeId: record.EmpCode, dateTime: new Date(record.DateTime) },
+                    { $set: { status: true, deviceId: record.DeviceId } },
+                    { upsert: true }
+                );
+
+                processedResults.push({
+                    EmpCode: record.EmpCode,
+                    DateTime: record.DateTime,
+                    DeviceId: record.DeviceId
+                });
+            }
+            return processedResults;
+        }
+        catch(error){
+            console.log(`An error occurred while processing raw attendance data: ${error.message}`);
+            throw new Error(`An error occurred while processing raw attendance data: ${error.message}`);
+        }
     }
 }
