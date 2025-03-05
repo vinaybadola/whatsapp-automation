@@ -21,6 +21,27 @@ module.exports = {
           NODE_ENV: 'PRODUCTION',
           PORT: 8000,
         },
+        env_worker: {
+          ROLE: 'queue-worker',
+          NODE_ENV: 'production'
+        }
       },
+      {
+        name: 'queue-worker',
+        script: 'config/queue.js', 
+        instances: 4, 
+        exec_mode: 'cluster',
+        autorestart: true
+      },
+      {
+        name: 'auto-scaler',
+        script: 'auto-scaler.js',
+        env: {
+          MAX_INSTANCES: 8,
+          CPU_THRESHOLD: 70, 
+          MEMORY_THRESHOLD: 80 
+        },
+        autorestart: true
+      }
     ],
   };

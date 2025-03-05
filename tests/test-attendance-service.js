@@ -10,31 +10,36 @@ const attendanceService = new AttendanceService();
 const testAttendanceData = [
   {
     EmpCode: 'WIBRO0065',
-    DateTime: '2025-03-03T10:08:02.000Z',
+    DateTime: '2025-03-05T13:20:02.000Z',
     DeviceId: 'DELHI'
   },
-  // {
-  //   EmpCode: 'WIBRO0065',
-  //   DateTime: '2025-02-T19:03:12.000Z',
-  //   DeviceId: 'DELHI'
-  // },
-  // {
-  //   EmpCode: 'WIBRO0065',
-  //   DateTime: '2025-02-T19:03:20.000Z',
-  //   DeviceId: 'DELHI'
-  // },
-  // {
-  //   EmpCode: 'WIBRO0065',
-  //   DateTime: '2025-02-T19:03:30.000Z',
-  //   DeviceId: 'DELHI'
-  // },
-
-  
+  {
+    EmpCode: 'WIBRO0065',
+    DateTime: '2025-03-05T13:20:10.000Z',
+    DeviceId: 'DELHI'
+  },
+  {
+    EmpCode: 'WIBRO0065',
+    DateTime: '2025-03-05T13:20:20.000Z',
+    DeviceId: 'DELHI'
+  },
+  {
+    EmpCode: 'WIBRO0065',
+    DateTime: '2025-03-05T13:20:40.000Z',
+    DeviceId: 'DELHI'
+  },
 ];
+if(testAttendanceData.length === 0){
+  console.log('No new attendance data found');
+  process.exit(0);
+}
 const updatedata = mergePunches(testAttendanceData)
+console.log('updatedata',updatedata)
 
+const processedData = await attendanceService.processRawData(updatedata)
+console.log('processedData',processedData)
 // Call the processAttendanceData method
-attendanceService.processShiftType(updatedata)
+attendanceService.processShiftType(processedData)
   .then(results => {
     console.log('Test results:', results);
     process.exit(0);

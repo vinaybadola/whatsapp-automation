@@ -4,9 +4,17 @@ const router = express.Router();
 import UserAttendanceController from '../controllers/user-attendance-controller.js';
 const userAttendanceController = new UserAttendanceController();
 
-router.get('/user-attendance/:empCode', userAttendanceController.getUserAttendanceData);
-router.get('/all-user-attendance', userAttendanceController.getAllUserAttendanceData);
+import RawAttendanceController from '../controllers/raw-attendance-controller.js';
+const rawAttendanceController = new RawAttendanceController();
+
+router.get('/employee', userAttendanceController.getUserAttendanceData);
+router.get('/', userAttendanceController.getAllUserAttendanceData);
 router.put('/update-attendance/:empCode', userAttendanceController.updateUserAttendanceData);
 router.post('/add-attendance', userAttendanceController.addUserAttendanceData);
+
+
+// Raw attendance routes
+router.get('/raw-attendance', rawAttendanceController.getAllRawAttendanceData);
+router.put('/update-raw-attendance/:empCode', rawAttendanceController.updateRawAttendanceData);
 
 export default router;

@@ -21,6 +21,7 @@ import messageTrackRoutes from './src/messageTracker/routes/message-track-route.
 import externalAPiRoutes from './src/devices/routes/external-whatsapp-route.js';
 import groupConfigRoutes from './src/messages/routes/group-config-route.js';
 import attendanceProcessingRoutes from "./src/attendance/routes/attendance-processing-route.js";
+import userAttendanceRoutes from "./src/attendance/routes/user-attendance-route.js";
 
 const app = express();
 const server = http.createServer(app); 
@@ -71,5 +72,6 @@ app.use("/api/message-tracker", messageTrackRoutes);
 app.use("/api/external", externalAPiRoutes);
 app.use("/api/group-configuration", groupConfigRoutes);
 app.use("/api/attendance", attendanceProcessingRoutes);
+app.use("/api/user/attendance", userAttendanceRoutes);
 
 export { app, server, io };
