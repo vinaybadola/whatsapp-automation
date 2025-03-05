@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 const {Schema} = mongoose;
 
 const userAttendanceSchema = new Schema({
-    employeeCode:{ type:String,required:true, sparse:true},
+    employeeName:{ type:String},
+    employeeCode:{ type:String,required:true, sparse:true, index:true},
     actualPunchInTime:{ type:Date,required:true},
     userpunchInTime : { type:Date,required:true},
     actualPunchOutTime : { type:Date,required:true},

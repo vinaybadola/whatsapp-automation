@@ -345,6 +345,7 @@ export default class AttendanceService {
             if (punchType === 'punch-in') {
                 if (!existingAttendance) {
                     existingAttendance = new UserAttendance({
+                        employeeName : data?.employeeName,
                         employeeCode: data.employeeCode,
                         actualPunchInTime: data.shiftStartTime,
                         userpunchInTime: data.punchTime,
@@ -398,6 +399,7 @@ export default class AttendanceService {
             else if (punchType === 'punch-out') {
                 if (!existingAttendance) {
                     existingAttendance = new UserAttendance({
+                        employeeName : data?.employeeName,
                         employeeCode: data.employeeCode,
                         actualPunchInTime: data.shiftStartTime,
                         userpunchInTime: data.punchTime,
@@ -537,6 +539,7 @@ export default class AttendanceService {
 
             processedResults.push({
                 punchTime,
+                employeeName : shiftTiming?.name,
                 employeeCode: record.EmpCode,
                 isTodayOff: shiftTiming.isTodayOff,
                 isNightShift,
