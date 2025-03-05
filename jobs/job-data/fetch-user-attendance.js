@@ -28,25 +28,37 @@ async function fetchDataFromPastHour(time = 40) {
 const THRESHOLD_MS = 2 * 60 * 1000; 
 
 function mergePunches(punchRecords) {
-  // Sort the records by DateTime (ascending)
-  punchRecords.sort((a, b) => new Date(a.DateTime) - new Date(b.DateTime));
-  
-  let merged = [];
-  let current = punchRecords[0];
-  
-  for (let i = 1; i < punchRecords.length; i++) {
-    const record = punchRecords[i];
-    const timeDiff = new Date(record.DateTime) - new Date(current.DateTime);
-    
-    if (timeDiff <= THRESHOLD_MS) {
-      current = record;
-    } else {
-      merged.push(current);
-      current = record;
+  // Group records by EmpCode
+  const grouped = {};
+  punchRecords.forEach(record => {
+    if (!grouped[record.EmpCode]) {
+      grouped[record.EmpCode] = [];
     }
+    grouped[record.EmpCode].push(record);
+  });
+
+  const merged = [];
+  for (const empCode in grouped) {
+    const employeeRecords = grouped[empCode];
+    // Sort records for the employee by DateTime (ascending)
+    employeeRecords.sort((a, b) => new Date(a.DateTime) - new Date(b.DateTime));
+    
+    let current = employeeRecords[0];
+    for (let i = 1; i < employeeRecords.length; i++) {
+      const record = employeeRecords[i];
+      const timeDiff = new Date(record.DateTime) - new Date(current.DateTime);
+      
+      if (timeDiff <= THRESHOLD_MS) {
+        current = record; // Keep the latest punch within the threshold
+      } else {
+        merged.push(current);
+        current = record;
+      }
+    }
+    merged.push(current); 
   }
-  
-  merged.push(current);
+
+  merged.sort((a, b) => new Date(b.DateTime) - new Date(a.DateTime));
   return merged;
 }
 
