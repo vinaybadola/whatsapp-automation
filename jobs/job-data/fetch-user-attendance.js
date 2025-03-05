@@ -51,7 +51,7 @@ function mergePunches(punchRecords) {
 }
 
 const runFetchUserAttendanceJob = () => {
-  cron.schedule('*/10 * * * *', async () => {
+  cron.schedule('*/5 * * * *', async () => {
     console.log('Running fetch-user-attendance job...');
 
     try {
@@ -59,29 +59,29 @@ const runFetchUserAttendanceJob = () => {
         const { default: AttendanceService } = await import('../../src/attendance/services/attendance-service.js');
         attendanceService = new AttendanceService();
       }
-      //const data = await fetchDataFromPastHour();
-      const data = [
-        {
-          EmpCode: 'WIBRO0065',
-          DateTime: '2025-03-05T10:03:02.000Z',
-          DeviceId: 'DELHI'
-        },
-        {
-          EmpCode: 'WIBRO0065',
-          DateTime: '2025-03-05T10:03:10.000Z',
-          DeviceId: 'DELHI'
-        },
-        {
-          EmpCode: 'WIBRO0065',
-          DateTime: '2025-03-05T10:03:20.000Z',
-          DeviceId: 'DELHI'
-        },
-        {
-          EmpCode: 'WIBRO0065',
-          DateTime: '2025-03-05T10:04:40.000Z',
-          DeviceId: 'DELHI'
-        },
-      ];
+      const data = await fetchDataFromPastHour();
+      // const data = [
+      //   {
+      //     EmpCode: 'WIBRO0065',
+      //     DateTime: '2025-03-05T10:03:02.000Z',
+      //     DeviceId: 'DELHI'
+      //   },
+      //   {
+      //     EmpCode: 'WIBRO0065',
+      //     DateTime: '2025-03-05T10:03:10.000Z',
+      //     DeviceId: 'DELHI'
+      //   },
+      //   {
+      //     EmpCode: 'WIBRO0065',
+      //     DateTime: '2025-03-05T10:03:20.000Z',
+      //     DeviceId: 'DELHI'
+      //   },
+      //   {
+      //     EmpCode: 'WIBRO0065',
+      //     DateTime: '2025-03-05T10:04:40.000Z',
+      //     DeviceId: 'DELHI'
+      //   },
+      // ];
 
       if(data.length === 0){
         console.log('No new attendance data found');
