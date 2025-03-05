@@ -153,12 +153,15 @@ export default class UserAttendanceController {
                 query.employeeCode = req.query.employeeCode;
             }
 
-            // For night shift and day shift 
-            if (req.query.shift) {
-                query.shift = req.query.shift;
+            // For night shift and day shift for night shift put the isNightShift as true and for day shift put isDayShift as true
+            if (req.query.isNightShift) {
+                query.isNightShift = req.query.isNightShift === "true";
             }
-        
-            const attendanceData = await UserAttendance.find(query).skip(skip).limit(limit);
+            if (req.query.isDayShift) {
+                query.isDayShift = req.query.isDayShift === "true";
+            }
+           
+            const attendanceData = await UserAttendance.find(query).skip(skip).limit(limit).sort({ createdAt: -1 });
             const total = await UserAttendance.countDocuments(query);
             const pagination = paginateReturn(page, limit, total, attendanceData.length);
         
