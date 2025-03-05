@@ -352,7 +352,7 @@ export default class AttendanceService {
                         actualPunchOutTime: data.shiftEndTime,
                         userPunchOutTime: data.punchTime,
                         isTodayOff: data.isTodayOff,
-                        totalHours: 0,
+                        totalHours: "0 hours 0 minutes",
                         isHalfDay: false,
                         hasPunchedIn: true,
                         isNightShift: false,

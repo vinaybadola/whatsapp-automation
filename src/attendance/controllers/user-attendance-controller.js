@@ -161,7 +161,7 @@ export default class UserAttendanceController {
                 query.isDayShift = req.query.isDayShift === "true";
             }
            
-            const attendanceData = await UserAttendance.find(query).skip(skip).limit(limit).sort({ createdAt: -1 });
+            const attendanceData = await UserAttendance.find(query).skip(skip).limit(limit).sort({ updatedAt: -1 });
             const total = await UserAttendance.countDocuments(query);
             const pagination = paginateReturn(page, limit, total, attendanceData.length);
         
