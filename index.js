@@ -52,7 +52,7 @@ const startServer = (port) => {
         process.exit(1);
       }
     } else {
-      log.info(`Server started on port ${port}`);
+      // log.info(`Server started on port ${port}`);
     }
   });
 };
