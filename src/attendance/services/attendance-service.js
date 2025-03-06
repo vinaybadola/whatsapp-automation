@@ -6,6 +6,7 @@ import MessageSendingService from "./message-sending-service.js";
 import { fetchDataFromPastHour } from '../../../jobs/job-data/fetch-user-attendance.js';
 import RawAttendance from "../models/raw-attendance-model.js";
 import { v4 as uuidv4 } from 'uuid';
+import {log} from '../../../utils/logger.js';
 export default class AttendanceService {
     constructor() {
         this.messageSendingService = new MessageSendingService();
@@ -317,7 +318,8 @@ export default class AttendanceService {
             const sameTimeRecord = await this.getSameTimeRecord(data);
 
             if (sameTimeRecord) {
-                console.log(`Day Shift Employee ${data.employeeCode} has already punched at ${data.punchTime} so skipping the record`);
+                log.info(`Day Shift Employee ${data.employeeCode} has already punched at ${new Date(data.punchTime).toUTCString} so skipping the record`);
+                console.log(`Day Shift Employee ${data.employeeCode} has already punched at ${new Date(data.punchTime).toUTCString} so skipping the record`);
                 return;
             }
 
@@ -424,9 +426,6 @@ export default class AttendanceService {
                         existingAttendance.totalHours = "0 hours 0 minutes";
                     }
                     else {
-                        console.log('existingAttendance.userpunchInTime:', existingAttendance.userpunchInTime);
-                        console.log('utcPunchTime:', data.utcPunchTime);
-
                         const millisecondsWorked = Math.max(0, data.punchTime - existingAttendance.userpunchInTime);
                         const totalMinutes = Math.floor(millisecondsWorked / (1000 * 60));
                         const countingHours = Math.floor(totalMinutes / 60);
@@ -524,6 +523,7 @@ export default class AttendanceService {
         for (const record of attendanceData) {
             let shiftTiming = await this.getShiftType(record.EmpCode);
             if (!shiftTiming) {
+                log.info(`Shift timing not found for employee ${record.EmpCode}`);
                 console.log(`Shift timing not found for employee ${record.EmpCode}`);
                 continue;
             }
@@ -570,6 +570,7 @@ export default class AttendanceService {
         console.log(`Processing ${processedResults.length} employees...`);
 
         for (const record of processedResults) {
+            log.info(`Processing ${record.employeeCode} at ${record.punchTime}`);
             console.log(`Processing ${record.employeeCode} at ${record.punchTime}`);
             if (record.isNightShift) {
                 console.log(`${record.employeeCode} is a night shift employee, skipping.`);
@@ -615,7 +616,8 @@ export default class AttendanceService {
                     ]
                 });
                 if (sameTimeRecord) {
-                    console.log(`Same Time Record has found during raw processing of Employee ${record.EmpCode} at ${record.DateTime} so skipping the record`);
+                    log.info(`Same Time Record has found during raw processing of Employee ${record.EmpCode} at ${punchTimeISO} so skipping the record`);
+                    console.log(`Same Time Record has found during raw processing of Employee ${record.EmpCode} at ${punchTimeISO} so skipping the record`);
                     // we can also set the status false for the record of employeeID and dateTime 
                     // to avoid the duplicate record in the future
                     await RawAttendance.updateOne({ employeeId: record.EmpCode, dateTime: punchTime },

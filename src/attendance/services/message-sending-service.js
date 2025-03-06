@@ -8,6 +8,7 @@ import Template from "../../templates/models/template-model.js";
 import { formatMessage } from '../../../helpers/message-helper.js';
 import UserAttendance from "../../attendance/models/user-attendance-model.js";
 import moment from 'moment-timezone';
+import {log} from "../../../utils/logger.js";
 
 export default class MessageSendingService {
     constructor() {
@@ -15,7 +16,7 @@ export default class MessageSendingService {
 
     sendMessage = async (record) => {
         try {
-
+            log.info(`sending message for ${record.employeeCode} with punchType ${record.punchType} and isHalfDayToday ${record.isHalfDayToday} and employee late minutes ${record.employeeLateMinutes}`); 
             if (!record) {
                 console.log('No data found to send message');
                 return "No data found to send message";
@@ -41,9 +42,11 @@ export default class MessageSendingService {
                 });
 
             if (!devicePhone) {
+                log.error('No device found for HR-Department');
                 throw new Error('No device found for HR-Department');
             }
             if (!devicePhone.sessionId.socketessionId) {
+                log.error('No Device is connected from HR-Department');
                 throw new Error('No Device is connected from HR-Department');
             }
 
@@ -59,6 +62,7 @@ export default class MessageSendingService {
 
             if (!getUserData && getUserData == "undefined") {
                 console.log(`Phone number not found for employee ${record.employeeCode}`);
+                log.error(`Phone number not found for employee ${record.employeeCode}`);
                 await UserAttendance.updateOne({ _id: record._id }, { $set: { reasonForNotSendingMessage: "Phone Number does not exist on shiftRoster database!" } });
                 return "Phone number not found for employee";
             }
@@ -74,7 +78,7 @@ export default class MessageSendingService {
             }
             else{
                 lateMinutes = this.extractMinutes(record.employeeLateMinutes);  // Change the late Minutes to integer to check for the condition of late minutes
-            }    
+            }  
             if (lateMinutes > 35 && record.punchType === "punch-in" && record.isHalfDayToday === false) {
                 const data = {
                     firstName: getUserData.name,
@@ -104,6 +108,8 @@ export default class MessageSendingService {
                 messageContent = formatMessage(data, templateCache["employee-checkout"]);
             }
             await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
+            //TODO: await UserAttendance.updateOne({ _id: record._id }, { $set: { messageSent: true } });
+            log.info(`Message has been queued to ${getUserData.name} with phone number ${formattedPhoneNumber}`);
             return "Job completed successfully";
         }
         catch (error) {
