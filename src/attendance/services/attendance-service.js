@@ -389,7 +389,8 @@ export default class AttendanceService {
                                 punchInTime: data.punchTime,
                                 isLate: true,
                                 lateByTime: lateBy,
-                                lateDayCount: 1
+                                lateDayCount: 1,
+                                userAttendanceId : existingAttendance._id
                             }
                         },
                         { upsert: true }
@@ -463,7 +464,8 @@ export default class AttendanceService {
                                     $set: {
                                         punchOutTime: data.punchTime,
                                         earlyBy,
-                                        isLeavingEarly: true
+                                        isLeavingEarly: true,
+                                        userAttendanceId : existingAttendance._id
                                     }
                                 }
                             );
@@ -473,7 +475,8 @@ export default class AttendanceService {
                                 date: startOfToday,
                                 punchOutTime: data.punchTime,
                                 earlyBy,
-                                isLeavingEarly: true
+                                isLeavingEarly: true,
+                                userAttendanceId : existingAttendance._id
                             });
                         }
                     } else {
@@ -484,7 +487,8 @@ export default class AttendanceService {
                                     $set: {
                                         punchOutTime: data.punchTime,
                                         isLeavingEarly: false,
-                                        earlyBy: 0
+                                        earlyBy: 0,
+                                        userAttendanceId : existingAttendance._id
                                     }
                                 }
                             );

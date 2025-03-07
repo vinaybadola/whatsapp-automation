@@ -2,8 +2,11 @@ import UserAttendance from "../models/user-attendance-model.js";
 import Defaulters from "../models/user-defaulters-model.js";
 import { paginate, paginateReturn } from '../../../helpers/pagination.js';
 import { errorResponseHandler } from '../../../helpers/data-validation.js';
-
+import UserAttendanceDataService from "../services/user-attendance-data-service.js";
 export default class UserAttendanceController {
+    constructor(){
+        this.userAttendanceDataService = new UserAttendanceDataService();
+    }
 
     /**
      * Get user attendance based on different time ranges (day, week, month, year, custom)
@@ -51,8 +54,9 @@ export default class UserAttendanceController {
                     return errorResponseHandler("Invalid filter type", 400, res);
             }
 
-            const attendanceData = await UserAttendance.find(filter);
-            return res.status(200).json({ success: true, data: attendanceData });
+            const stats = await this.userAttendanceDataService.getUserStats(employeeCode, filterType);
+            const attendanceData = await UserAttendance.find(filter).sort({updatedAt: -1});
+            return res.status(200).json({ success: true, data: attendanceData, stats });
 
         } catch (error) {
             console.error("Error fetching attendance data:", error);
