@@ -184,7 +184,7 @@ export default class AttendanceService {
                             existingAttendance.totalHours = workedHours;
                             existingAttendance.isAbsent = countingHours < 4;
 
-                            if (!existingAttendance.isAbsent && countingHours < 9) {
+                            if (!existingAttendance.isAbsent && countingHours < 8) {
                                 existingAttendance.isHalfDay = true;
                             }
 
