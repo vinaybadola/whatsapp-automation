@@ -10,7 +10,8 @@ const DefaultersSchema = new Schema({
     lateDayCount : {type : Number},
     isLeavingEarly : {type:Boolean, default : false},
     earlyBy : {type:String},
-    date : {type : Date, default : Date.now}
+    date : {type : Date, default : Date.now},
+    userAttendanceId : {type : Schema.Types.ObjectId, ref : 'User-attendance', index : true},
 },{timestamps :true});
 
 const Defaulters = mongoose.model('Defaulters', DefaultersSchema);
