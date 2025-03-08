@@ -66,6 +66,11 @@ export default class MessageSendingService {
                 await UserAttendance.updateOne({ _id: record._id }, { $set: { reasonForNotSendingMessage: "Phone Number does not exist on shiftRoster database!" } });
                 return "Phone number not found for employee";
             }
+            if(getUserData == null){
+                log.error(`Phone number not found for employee ${record.employeeCode}`);
+                await UserAttendance.updateOne({ _id: record._id }, { $set: { reasonForNotSendingMessage: "Phone Number does not exist on shiftRoster database!" } });
+                return "Phone number not found for employee";
+            }
             const formattedPhoneNumber = formatPhoneNumber(getUserData.mobile);
 
             const sessionId = devicePhone.sessionId.socketessionId;
@@ -107,7 +112,7 @@ export default class MessageSendingService {
                 }
                 messageContent = formatMessage(data, templateCache["employee-checkout"]);
             }
-            await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
+            // await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
             //TODO: await UserAttendance.updateOne({ _id: record._id }, { $set: { messageSent: true } });
             log.info(`Message has been queued to ${getUserData.name} with phone number ${formattedPhoneNumber}`);
             return "Job completed successfully";
