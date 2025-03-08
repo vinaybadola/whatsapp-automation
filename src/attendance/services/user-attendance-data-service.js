@@ -94,8 +94,8 @@ export default class UserAttendanceDataService {
         // Ensure onTimeDays is not negative (in case of invalid data)
         const validOnTimeDays = Math.max(0, onTimeDays);
 
-        return totalExpectedWorkingDays
-            ? ((validOnTimeDays / totalExpectedWorkingDays) * 100).toFixed(2)
+        return expectedDaysToWork
+            ? ((validOnTimeDays / expectedDaysToWork) * 100).toFixed(2)
             : 100;
     }
     calculateDaysPresentAndAbsent(attendanceRecords) {
