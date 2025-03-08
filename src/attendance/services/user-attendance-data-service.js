@@ -3,7 +3,7 @@ import { errorResponseHandler } from '../../../helpers/data-validation.js';
 import UserAttendance from "../models/user-attendance-model.js";
 
 export default class UserAttendanceDataService {
-    
+
     getUserStats = async (employeeCode, filterType = "week") => {
         try {
             if (!employeeCode) {
@@ -19,8 +19,8 @@ export default class UserAttendanceDataService {
             }
 
             const avgWorkingHours = this.calculateAvgWorkingHours(attendanceRecords, defaulterRecords);
-            const onTimePercentage = this.calculateOnTimePercentage(defaulterRecords); 
-            const {daysPresent, daysAbsent} = this.calculateDaysPresentAndAbsent(attendanceRecords);
+            const onTimePercentage = this.calculateOnTimePercentage(defaulterRecords, filterType);
+            const { daysPresent, daysAbsent } = this.calculateDaysPresentAndAbsent(attendanceRecords);
 
             return { avgWorkingHours, onTimePercentage, daysPresent, daysAbsent };
 
@@ -53,7 +53,7 @@ export default class UserAttendanceDataService {
     }
     calculateAvgWorkingHours(attendanceRecords, defaulterRecords) {
         let totalWorkingMinutes = 0, totalWorkingDays = 0;
-    
+
         attendanceRecords.forEach(record => {
             if (record.totalHours) {
                 const parts = record.totalHours.match(/(\d+)\s*hours?\s*(\d+)?\s*minutes?/);
@@ -63,7 +63,7 @@ export default class UserAttendanceDataService {
                 totalWorkingDays++;
             }
         });
-    
+
         defaulterRecords.forEach(record => {
             if (record.isLate && record.lateByTime) {
                 const parts = record.lateByTime.match(/(\d+)\s*hours?\s*(\d+)?\s*minutes?/);
@@ -72,25 +72,43 @@ export default class UserAttendanceDataService {
                 totalWorkingMinutes += (hours * 60) + minutes;
             }
         });
-    
+
         return totalWorkingDays ? (totalWorkingMinutes / totalWorkingDays / 60).toFixed(2) : 0;
     }
-    calculateOnTimePercentage(defaulterRecords) {
-        const totalRecords = defaulterRecords.length;
-        const onTimeCount = defaulterRecords.filter(record => !record.isLate).length;
-        return totalRecords ? ((onTimeCount / totalRecords) * 100).toFixed(2) : 0;
+    calculateOnTimePercentage(defaulterRecords, filterType) {
+        let expectedDaysToWork = 0;
+
+        if (filterType === "week") {
+            expectedDaysToWork = 6;
+        }
+        else if (filterType === "month") {
+            expectedDaysToWork = 26;
+        }
+        else if (filterType === "year") {
+            expectedDaysToWork = 313;
+        }
+        const lateDays = defaulterRecords.length;
+
+        const onTimeDays = expectedDaysToWork - lateDays;
+
+        // Ensure onTimeDays is not negative (in case of invalid data)
+        const validOnTimeDays = Math.max(0, onTimeDays);
+
+        return totalExpectedWorkingDays
+            ? ((validOnTimeDays / totalExpectedWorkingDays) * 100).toFixed(2)
+            : 100;
     }
     calculateDaysPresentAndAbsent(attendanceRecords) {
         let daysPresent = 0, daysAbsent = 0;
-    
+
         attendanceRecords.forEach(record => {
             if (!record.isAbsent || (record.totalHours && record.totalHours !== "0")) {
-                daysPresent++;  
+                daysPresent++;
             } else {
                 daysAbsent++;
             }
         });
-    
+
         return { daysPresent, daysAbsent };
-    }   
+    }
 }

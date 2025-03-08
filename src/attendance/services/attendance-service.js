@@ -381,6 +381,7 @@ export default class AttendanceService {
 
                 if (!isWithinWindow) {
                     employeeLateMinutes = lateBy;
+                    existingAttendance.isOnTime = false;
                     await Defaulters.updateOne(
                         { employeeCode: data.employeeCode, date: startOfToday },
                         {
@@ -415,6 +416,7 @@ export default class AttendanceService {
                         hasPunchedOut: true,
                         isNightShift: false,
                         isDayShift: true,
+                        isOnTime : false
                     });
                 }
                 else {
@@ -436,7 +438,7 @@ export default class AttendanceService {
                         existingAttendance.totalHours = workedHours;
                         existingAttendance.isAbsent = countingHours < 4;
 
-                        if (!existingAttendance.isAbsent && countingHours < 9) {
+                        if (!existingAttendance.isAbsent && countingHours < 8) {
                             existingAttendance.isHalfDay = true;
                         }
 
@@ -457,6 +459,7 @@ export default class AttendanceService {
                     });
 
                     if (isLeavingEarly) {
+                        existingAttendance.isLeavingEarly = true;
                         if (existingDefaulter) {
                             await Defaulters.updateOne(
                                 { employeeCode: data.employeeCode, date: startOfToday },
@@ -480,6 +483,7 @@ export default class AttendanceService {
                             });
                         }
                     } else {
+                        existingAttendance.isLeavingEarly = false;
                         if (existingDefaulter) {
                             await Defaulters.updateOne(
                                 { employeeCode: data.employeeCode, date: startOfToday },
