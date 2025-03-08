@@ -32,8 +32,10 @@ export default class UserAttendanceController {
                     };
                     break;
                 case "week":
-                    const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
-                    const endOfWeek = new Date(today.setDate(startOfWeek.getDate() + 6));
+                    const startOfWeek = new Date(today);
+                    startOfWeek.setDate(today.getDate() - today.getDay());  
+                    const endOfWeek = new Date(today);  
+                    endOfWeek.setHours(23, 59, 59, 999);
                     filter.userpunchInTime = { $gte: startOfWeek, $lt: endOfWeek };
                     break;
                 case "month":
