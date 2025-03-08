@@ -3,7 +3,7 @@ import UserAttendance from "../../attendance/models/user-attendance-model.js";
 import { determinePunchType, checkPunchOutValidity, checkPunchInValidity } from "../../../helpers/attendance-helper.js";
 import Defaulters from "../models/user-defaulters-model.js";
 import MessageSendingService from "./message-sending-service.js";
-import { fetchDataFromPastHour } from '../../../jobs/job-data/fetch-user-attendance.js';
+import { fetchDataFromPast } from '../../../jobs/job-data/fetch-user-attendance.js';
 import RawAttendance from "../models/raw-attendance-model.js";
 import { v4 as uuidv4 } from 'uuid';
 import {log} from '../../../utils/logger.js';
@@ -274,14 +274,27 @@ export default class AttendanceService {
     };
 
     getAttendanceData = async (req, res) => {
-        try {
-            return res.status(200).json({ success: true, data: await fetchDataFromPastHour() });
-        }
+        try {  
+            // 🔹 Get Query Params
+            const { timeValue, timeUnit, empCode, dateFilter , raw } = req.query;
+    
+            // 🔥 Fetch Data Using the Dynamic Function
+            const attendanceData = await fetchDataFromPast(
+                timeValue ? parseInt(timeValue) : 30,
+                timeUnit || "minutes",
+                empCode || null,
+                dateFilter || null,
+                raw || false
+            );
+    
+            return res.status(200).json({ success: true, data: attendanceData });
+        } 
         catch (error) {
             console.log(`An error occurred while fetching attendance data: ${error.message}`);
-            return { success: false, error: error.message };
+            return res.status(500).json({ success: false, error: error.message });
         }
-    }
+    };
+    
 
     getSameTimeRecord = async (data) => {
         const sameTimeRecord = await UserAttendance.findOne({
