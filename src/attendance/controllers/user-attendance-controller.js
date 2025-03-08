@@ -3,6 +3,8 @@ import Defaulters from "../models/user-defaulters-model.js";
 import { paginate, paginateReturn } from '../../../helpers/pagination.js';
 import { errorResponseHandler } from '../../../helpers/data-validation.js';
 import UserAttendanceDataService from "../services/user-attendance-data-service.js";
+import { shiftRoasterDB } from "../../../config/externalDatabase.js";
+
 export default class UserAttendanceController {
     constructor(){
         this.userAttendanceDataService = new UserAttendanceDataService();
@@ -242,4 +244,167 @@ export default class UserAttendanceController {
             return errorResponseHandler("Internal Server Error", 500, res);
         }
     };
+
+    /**
+     * Get all shift timings with users in 
+    */
+    getAllEmployeeShiftData = async (req, res) => {
+    try {
+        const todayDate = new Date().toISOString().split("T")[0]; 
+
+        const shiftTimingCursor = await shiftRoasterDB.collection("shiftnames").find().toArray();
+        console.log("shiftTimingCursor", shiftTimingCursor);
+        const shiftTimings = [];
+
+        for (const shift of shiftTimingCursor) {
+            const formattedShiftTime = shift.shiftName.replace(/\s/g, ""); 
+        
+            const employees = await shiftRoasterDB.collection("shifttimings").aggregate([
+                { 
+                    $match: { 
+                        shiftTime: new RegExp("^" + formattedShiftTime.replace(/-/g, " - ") + "$"),
+                        date: {
+                            $gte: new Date(todayDate + "T00:00:00.000Z"),
+                            $lt: new Date(todayDate + "T23:59:59.999Z")
+                        } 
+                    } 
+                },
+                { 
+                    $group: { 
+                        _id: "$employeeCode",
+                        name: { $first: "$name" },
+                        shiftTime: { $first: "$shiftTime" }
+                    }
+                }
+            ]).toArray();
+        
+            shiftTimings.push({
+                shiftTime: shift.shiftName,
+                employees
+            });
+
+        }
+        return res.json({ success: true, data : shiftTimings });
+    } catch (error) {
+        console.error("Error fetching employees with their shift Timings!:", error);
+        if( error instanceof Error){
+            return errorResponseHandler(error.message, 400,res);
+        }
+        return errorResponseHandler("Internal Server Error", 500, res);
+    }
+    };
+
+    /**
+     * Get all user absent/present (Paginated)
+     */
+
+    getAllUserAbsentPresentData = async (req, res) => {
+        try {
+            const { page, limit, skip } = paginate(req);
+            const query = {};
+    
+            // 🔹 Filter by Employee Code (If Requested)
+            if (req.query.employeeCode) {
+                query.employeeCode = req.query.employeeCode;
+            }
+    
+            // 🔹 Filter by Shift Timing (If Requested)
+            if (req.query.shiftTime) {
+                query.shiftTime = req.query.shiftTime;
+            }
+    
+            // 🔹 Filter by Attendance Status
+            if (req.query.isAbsent) {
+                query.isAbsent = req.query.isAbsent === "true";
+            }
+            if (req.query.isPresent) {
+                query.isPresent = req.query.isPresent === "true";
+            }
+    
+            // 🔹 Filter by Today's Date
+            if (req.query.today === "true") {  // ✅ Compare as string
+                const today = new Date();
+                query.userpunchInTime = {
+                    $gte: new Date(today.setHours(0, 0, 0, 0)),
+                    $lt: new Date(today.setHours(23, 59, 59, 999))
+                };
+            }
+    
+            // 🔹 Filter by Specific Date
+            if (req.query.date) {
+                const selectedDate = new Date(req.query.date);
+                if (selectedDate.toString() === "Invalid Date") {
+                    return errorResponseHandler("Invalid Date Format", 400, res);
+                }
+                query.userpunchInTime = {
+                    $gte: new Date(selectedDate.setHours(0, 0, 0, 0)).toISOString(),
+                    $lt: new Date(selectedDate.setHours(23, 59, 59, 999)).toISOString()
+                };
+            }
+    
+            // 🔹 Filter by Date Range (Start Date - End Date)
+            else if (req.query.startDate && req.query.endDate) {
+                query.userpunchInTime = {
+                    $gte: new Date(req.query.startDate).toISOString(),
+                    $lt: new Date(req.query.endDate).toISOString()
+                };
+            }
+    
+            const presentEmployeeCount = await UserAttendance.aggregate([
+                { 
+                    $match: { 
+                        ...query, 
+                        hasPunchedIn: true,   
+                        hasPunchedOut: true   
+                    } 
+                },
+                { $group: { _id: "$employeeCode" } },
+                { $count: "presentCount" }
+            ]);
+            console.log('query',query);
+            
+            const absentEmployeeCount = await UserAttendance.aggregate([
+                { 
+                    $match: { 
+                        ...query, 
+                        isAbsent: true,
+                        hasPunchedIn: false,   
+                        hasPunchedOut: false   
+                    } 
+                },
+                { $group: { _id: "$employeeCode" } },
+                { $count: "absentCount" }
+            ]);
+            
+            const presentCount = presentEmployeeCount.length > 0 ? presentEmployeeCount[0].presentCount : 0;
+            const absentCount = absentEmployeeCount.length > 0 ? absentEmployeeCount[0].absentCount : 0;
+            
+    
+            // 🔹 Fetch Attendance Data
+            const attendanceData = await UserAttendance.find(query)
+                .skip(skip)
+                .limit(limit)
+                .sort({ updatedAt: -1 });
+    
+            const total = await UserAttendance.countDocuments(query);
+            const pagination = paginateReturn(page, limit, total, attendanceData.length);
+    
+            return res.status(200).json({
+                success: true,
+                data: attendanceData,
+                presentEmployeeCount: presentCount,
+                absentEmployeeCount: absentCount,
+                pagination
+            });
+    
+        } catch (error) {
+            console.error("Error fetching attendance data:", error);
+            if (error instanceof Error) {
+                return errorResponseHandler(error.message, 400, res);
+            }
+            return errorResponseHandler("Internal Server Error", 500, res);
+        }
+    };
+    
+
 }

@@ -97,7 +97,7 @@ const runFetchUserAttendanceJob = () => {
 
       if(data.length === 0){
         console.log('No new attendance data found');
-        process.exit(0);
+        return "No new attendance data found to process in runFetchUserAttendanceJob function !";
       }
 
       const mergedAttendance = mergePunches(data);
