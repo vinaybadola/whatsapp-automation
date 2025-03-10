@@ -6,16 +6,15 @@ import UserAttendanceDataService from "../services/user-attendance-data-service.
 import { shiftRoasterDB } from "../../../config/externalDatabase.js";
 
 export default class UserAttendanceController {
-    constructor(){
+    constructor() {
         this.userAttendanceDataService = new UserAttendanceDataService();
     }
-
     /**
      * Get user attendance based on different time ranges (day, week, month, year, custom)
      */
     getUserAttendanceData = async (req, res) => {
         try {
-            const { employeeCode, filterType= "day", startDate, endDate } = req.query;
+            const { employeeCode, filterType = "day", startDate, endDate } = req.query;
 
             if (!employeeCode) {
                 return errorResponseHandler("Employee code is required", 400, res);
@@ -33,8 +32,8 @@ export default class UserAttendanceController {
                     break;
                 case "week":
                     const startOfWeek = new Date(today);
-                    startOfWeek.setDate(today.getDate() - today.getDay());  
-                    const endOfWeek = new Date(today);  
+                    startOfWeek.setDate(today.getDate() - today.getDay());
+                    const endOfWeek = new Date(today);
                     endOfWeek.setHours(23, 59, 59, 999);
                     filter.userpunchInTime = { $gte: startOfWeek, $lt: endOfWeek };
                     break;
@@ -59,12 +58,12 @@ export default class UserAttendanceController {
             }
 
             const stats = await this.userAttendanceDataService.getUserStats(employeeCode, filterType);
-            const attendanceData = await UserAttendance.find(filter).sort({updatedAt: -1});
+            const attendanceData = await UserAttendance.find(filter).sort({ updatedAt: -1 });
             return res.status(200).json({ success: true, data: attendanceData, stats });
 
         } catch (error) {
             console.error("Error fetching attendance data:", error);
-            if(error instanceof Error) {
+            if (error instanceof Error) {
                 return errorResponseHandler(error.message, 400, res);
             }
             return errorResponseHandler("Internal Server Error", 500, res);
@@ -102,10 +101,10 @@ export default class UserAttendanceController {
 
         } catch (error) {
             console.error("Error updating attendance:", error);
-            if(error instanceof Error) {
+            if (error instanceof Error) {
                 return errorResponseHandler(error.message, 400, res);
             }
-            return errorResponseHandler("Internal Server Error", 500, res);      
+            return errorResponseHandler("Internal Server Error", 500, res);
         }
     };
 
@@ -114,7 +113,7 @@ export default class UserAttendanceController {
      */
     getAllUserAttendanceData = async (req, res) => {
         try {
-            const { page,limit,skip } = paginate(req);
+            const { page, limit, skip } = paginate(req);
 
             const query = {};
 
@@ -168,16 +167,16 @@ export default class UserAttendanceController {
             if (req.query.isDayShift) {
                 query.isDayShift = req.query.isDayShift === "true";
             }
-           
+
             const attendanceData = await UserAttendance.find(query).skip(skip).limit(limit).sort({ updatedAt: -1 });
             const total = await UserAttendance.countDocuments(query);
             const pagination = paginateReturn(page, limit, total, attendanceData.length);
-        
+
             return res.status(200).json({ success: true, data: attendanceData, pagination });
 
         } catch (error) {
             console.error("Error fetching all attendance data:", error);
-            if(error instanceof Error) {
+            if (error instanceof Error) {
                 return errorResponseHandler(error.message, 400, res);
             }
             return errorResponseHandler("Internal Server Error", 500, res);
@@ -220,7 +219,7 @@ export default class UserAttendanceController {
 
             // Check if employee is late and update Defaulters list
             const punchInThreshold = new Date(actualPunchInTime);
-            punchInThreshold.setMinutes(punchInThreshold.getMinutes() + 10); 
+            punchInThreshold.setMinutes(punchInThreshold.getMinutes() + 10);
 
             if (new Date(userpunchInTime) > punchInThreshold) {
                 await Defaulters.updateOne(
@@ -240,7 +239,7 @@ export default class UserAttendanceController {
 
         } catch (error) {
             console.error("Error adding attendance:", error);
-            if(error instanceof Error) {
+            if (error instanceof Error) {
                 return errorResponseHandler(error.message, 400, res);
             }
             return errorResponseHandler("Internal Server Error", 500, res);
@@ -251,49 +250,18 @@ export default class UserAttendanceController {
      * Get all shift timings with users in 
     */
     getAllEmployeeShiftData = async (req, res) => {
-    try {
-        const todayDate = new Date().toISOString().split("T")[0]; 
+        try {
+            const todayDate = new Date().toISOString().split("T")[0];
+            const data = await this.getTotalEmployeeCountAccordingtoShift(todayDate);
 
-        const shiftTimingCursor = await shiftRoasterDB.collection("shiftnames").find().toArray();
-        console.log("shiftTimingCursor", shiftTimingCursor);
-        const shiftTimings = [];
-
-        for (const shift of shiftTimingCursor) {
-            const formattedShiftTime = shift.shiftName.replace(/\s/g, ""); 
-        
-            const employees = await shiftRoasterDB.collection("shifttimings").aggregate([
-                { 
-                    $match: { 
-                        shiftTime: new RegExp("^" + formattedShiftTime.replace(/-/g, " - ") + "$"),
-                        date: {
-                            $gte: new Date(todayDate + "T00:00:00.000Z"),
-                            $lt: new Date(todayDate + "T23:59:59.999Z")
-                        } 
-                    } 
-                },
-                { 
-                    $group: { 
-                        _id: "$employeeCode",
-                        name: { $first: "$name" },
-                        shiftTime: { $first: "$shiftTime" }
-                    }
-                }
-            ]).toArray();
-        
-            shiftTimings.push({
-                shiftTime: shift.shiftName,
-                employees
-            });
-
+            return res.json({ success: true, data });
+        } catch (error) {
+            console.error("Error fetching employees with their shift Timings!:", error);
+            if (error instanceof Error) {
+                return errorResponseHandler(error.message, 400, res);
+            }
+            return errorResponseHandler("Internal Server Error", 500, res);
         }
-        return res.json({ success: true, data : shiftTimings });
-    } catch (error) {
-        console.error("Error fetching employees with their shift Timings!:", error);
-        if( error instanceof Error){
-            return errorResponseHandler(error.message, 400,res);
-        }
-        return errorResponseHandler("Internal Server Error", 500, res);
-    }
     };
 
     /**
@@ -304,34 +272,27 @@ export default class UserAttendanceController {
         try {
             const { page, limit, skip } = paginate(req);
             const query = {};
-    
-            // 🔹 Filter by Employee Code (If Requested)
+
             if (req.query.employeeCode) {
                 query.employeeCode = req.query.employeeCode;
             }
-    
-            // 🔹 Filter by Shift Timing (If Requested)
+
             if (req.query.shiftTime) {
                 query.shiftTime = req.query.shiftTime;
             }
-    
-            // 🔹 Filter by Attendance Status
-            if (req.query.isAbsent) {
-                query.isAbsent = req.query.isAbsent === "true";
+
+            if (req.query.deviceId) {
+                query.deviceId = req.query.deviceId;
             }
-            if (req.query.isPresent) {
-                query.isPresent = req.query.isPresent === "true";
-            }
-    
-            // 🔹 Filter by Today's Date
-            if (req.query.today === "true") {  // ✅ Compare as string
+
+            if (req.query.today === "true") {
                 const today = new Date();
                 query.userpunchInTime = {
                     $gte: new Date(today.setHours(0, 0, 0, 0)),
                     $lt: new Date(today.setHours(23, 59, 59, 999))
                 };
             }
-    
+
             // 🔹 Filter by Specific Date
             if (req.query.date) {
                 const selectedDate = new Date(req.query.date);
@@ -343,7 +304,7 @@ export default class UserAttendanceController {
                     $lt: new Date(selectedDate.setHours(23, 59, 59, 999)).toISOString()
                 };
             }
-    
+
             // 🔹 Filter by Date Range (Start Date - End Date)
             else if (req.query.startDate && req.query.endDate) {
                 query.userpunchInTime = {
@@ -351,46 +312,45 @@ export default class UserAttendanceController {
                     $lt: new Date(req.query.endDate).toISOString()
                 };
             }
-    
+
             const presentEmployeeCount = await UserAttendance.aggregate([
-                { 
-                    $match: { 
-                        ...query, 
-                        hasPunchedIn: true,   
-                        hasPunchedOut: true   
-                    } 
+                {
+                    $match: {
+                        ...query,
+                        hasPunchedIn: true,
+                        hasPunchedOut: true
+                    }
                 },
                 { $group: { _id: "$employeeCode" } },
                 { $count: "presentCount" }
             ]);
-            console.log('query',query);
-            
+
             const absentEmployeeCount = await UserAttendance.aggregate([
-                { 
-                    $match: { 
-                        ...query, 
+                {
+                    $match: {
+                        ...query,
                         isAbsent: true,
-                        hasPunchedIn: false,   
-                        hasPunchedOut: false   
-                    } 
+                        hasPunchedIn: false,
+                        hasPunchedOut: false
+                    }
                 },
                 { $group: { _id: "$employeeCode" } },
                 { $count: "absentCount" }
             ]);
-            
+
             const presentCount = presentEmployeeCount.length > 0 ? presentEmployeeCount[0].presentCount : 0;
             const absentCount = absentEmployeeCount.length > 0 ? absentEmployeeCount[0].absentCount : 0;
-            
-    
+
+
             // 🔹 Fetch Attendance Data
             const attendanceData = await UserAttendance.find(query)
                 .skip(skip)
                 .limit(limit)
                 .sort({ updatedAt: -1 });
-    
+
             const total = await UserAttendance.countDocuments(query);
             const pagination = paginateReturn(page, limit, total, attendanceData.length);
-    
+
             return res.status(200).json({
                 success: true,
                 data: attendanceData,
@@ -398,7 +358,7 @@ export default class UserAttendanceController {
                 absentEmployeeCount: absentCount,
                 pagination
             });
-    
+
         } catch (error) {
             console.error("Error fetching attendance data:", error);
             if (error instanceof Error) {
@@ -407,6 +367,120 @@ export default class UserAttendanceController {
             return errorResponseHandler("Internal Server Error", 500, res);
         }
     };
-    
 
+    getDashboardData = async(req,res) =>{
+        try{
+            const {shiftTiming="10:00-19:00"} = req.query;
+
+            const query = {};
+
+            // fectch the total number of employees present in the shift
+            let date = new Date().toISOString().split("T")[0];
+
+            if(req.query.date){
+                query.date = req.query.date;
+            }
+
+            const shiftTimings = await this.getTotalEmployeeCountAccordingtoShift(date);
+            const shift = shiftTimings.find((shift) => shift.shiftTime === shiftTiming);
+            const totalEmployees = shift ? shift.employees.length : 0;
+
+            // fetch the total number of employees present today
+            const presentEmployees = await UserAttendance.find({
+                userpunchInTime: {
+                    $gte: new Date(date + "T00:00:00.000Z"),
+                    $lt: new Date(date + "T23:59:59.999Z")
+                },
+            })
+
+            const presentEmployeesCount = presentEmployees.length;
+            const absentEmployeesCount = totalEmployees - presentEmployeesCount;
+            
+            let onTimeEmployeesCount = 0;
+            let lateEmployeesCount = 0;
+
+            const userData = [];
+            for(const employee of presentEmployees){
+                if(employee.isOnTime){
+                    userData.push({
+                        onTime: true,
+                        empCode: employee.employeeCode,
+                        name: employee.name,
+                        userPunchInTime: employee.userpunchInTime,
+                        userPunchOutTime: employee.userPunchOutTime
+                    });
+                    onTimeEmployeesCount++;
+                }
+                else if(employee.isOnTime === false){
+                    userData.push({
+                        isLate: true,
+                        empCode: employee.employeeCode,
+                        name: employee.name,
+                        userPunchInTime: employee.userpunchInTime,
+                        userPunchOutTime: employee.userPunchOutTime
+                    });
+                    lateEmployeesCount++;
+                }
+            }
+
+            return res.status(200).json({
+                success: true,
+                totalEmployees,
+                presentEmployeesCount,
+                absentEmployeesCount,
+                onTimeEmployeesCount,
+                lateEmployeesCount,
+                userData
+            });
+
+        }
+        catch(error){
+            console.error("Error fetching dashboard data:", error);
+            if (error instanceof Error) {
+                return errorResponseHandler(error.message, 400, res);
+            }
+            return errorResponseHandler("Internal Server Error", 500, res);
+        }
+    }
+
+    getTotalEmployeeCountAccordingtoShift = async (date) => {
+        try {
+            const shiftTimingCursor = await shiftRoasterDB.collection("shiftnames").find().toArray();
+            const shiftTimings = [];
+
+            for (const shift of shiftTimingCursor) {
+                const formattedShiftTime = shift.shiftName.replace(/\s/g, "");
+
+                const employees = await shiftRoasterDB.collection("shifttimings").aggregate([
+                    {
+                        $match: {
+                            shiftTime: new RegExp("^" + formattedShiftTime.replace(/-/g, " - ") + "$"),
+                            date: {
+                                $gte: new Date(date + "T00:00:00.000Z"),
+                                $lt: new Date(date + "T23:59:59.999Z")
+                            }
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: "$employeeCode",
+                            name: { $first: "$name" },
+                            shiftTime: { $first: "$shiftTime" }
+                        }
+                    }
+                ]).toArray();
+
+                shiftTimings.push({
+                    shiftTime: shift.shiftName,
+                    employees
+                });
+
+            }
+
+            return shiftTimings;
+        } catch (error) {
+            console.error("Error fetching shift timings:", error);
+            throw error;
+        }
+    }
 }

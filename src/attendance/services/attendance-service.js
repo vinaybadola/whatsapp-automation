@@ -3,7 +3,7 @@ import UserAttendance from "../../attendance/models/user-attendance-model.js";
 import { determinePunchType, checkPunchOutValidity, checkPunchInValidity } from "../../../helpers/attendance-helper.js";
 import Defaulters from "../models/user-defaulters-model.js";
 import MessageSendingService from "./message-sending-service.js";
-import { fetchDataFromPastHour } from '../../../jobs/job-data/fetch-user-attendance.js';
+import { fetchDataFromPast } from '../../../jobs/job-data/fetch-user-attendance.js';
 import RawAttendance from "../models/raw-attendance-model.js";
 import { v4 as uuidv4 } from 'uuid';
 import {log} from '../../../utils/logger.js';
@@ -274,15 +274,25 @@ export default class AttendanceService {
     };
 
     getAttendanceData = async (req, res) => {
-        try {
-            return res.status(200).json({ success: true, data: await fetchDataFromPastHour() });
-        }
+        try {  
+            const { timeValue, timeUnit, empCode, dateFilter , raw } = req.query;
+    
+            const attendanceData = await fetchDataFromPast(
+                timeValue ? parseInt(timeValue) : 30,
+                timeUnit || "minutes",
+                empCode || null,
+                dateFilter || null,
+                raw || false
+            );
+    
+            return res.status(200).json({ success: true, data: attendanceData });
+        } 
         catch (error) {
             console.log(`An error occurred while fetching attendance data: ${error.message}`);
-            return { success: false, error: error.message };
+            return res.status(500).json({ success: false, error: error.message });
         }
-    }
-
+    };
+    
     getSameTimeRecord = async (data) => {
         const sameTimeRecord = await UserAttendance.findOne({
             employeeCode: data.employeeCode,
@@ -305,6 +315,207 @@ export default class AttendanceService {
 
             const punchType = await determinePunchType(data.punchTime, data.utcPunchTime, data.shiftStartTime, data.shiftEndTime, data.employeeCode, data.isNightShift);
             
+            // check existing attendance for the employee  with the condition of checking two hours
+            // prior from the shift start time and after the shift start time 
+            const twoHoursPrior = new Date(data.shiftStartTime.getTime() - 2 * 60 * 60 * 1000);
+
+            // let existingAttendance = await UserAttendance.findOne({
+            //     employeeCode : data.employeeCode
+            // }).or([
+            //     {
+            //         userpunchInTime: { $gte: twoHoursPrior}
+            //     },
+            //     {
+            //         userpunchInTime : {$gte: data.shiftStartTime}
+            //     }
+            // ]).sort({userPunchInTime : -1});
+
+            let existingAttendance = await UserAttendance.findOne({
+                employeeCode : data.employeeCode
+            }).or([
+                {
+                    actualPunchInTime : { $gte : data.shiftStartTime}
+                },
+                {
+                    actualPunchInTime : {$lt :twoHoursPrior }
+
+                },
+                
+            ]);
+
+            console.log(`Punch type for employee :  ${data.employeeCode}: ${punchType}`);
+
+            let employeeLateMinutes = 0; // These two variables are use to determine if the employee is late or not and halfday to send it for
+            let isHalfDayToday = false; // sending message 
+
+            if (punchType === 'punch-in') {
+                if (!existingAttendance) {
+                    existingAttendance = new UserAttendance({
+                        employeeName : data?.employeeName,
+                        employeeCode: data.employeeCode,
+                        actualPunchInTime: data.shiftStartTime,
+                        userpunchInTime: data.punchTime,
+                        deviceId: data.deviceId,
+                        actualPunchOutTime: data.shiftEndTime,
+                        userPunchOutTime: data.punchTime,
+                        isTodayOff: data.isTodayOff,
+                        totalHours: "0 hours 0 minutes",
+                        isHalfDay: false,
+                        hasPunchedIn: true,
+                        isNightShift: true,
+                        isDayShift: false,
+                    });
+                } else {
+                    existingAttendance.userpunchInTime = data.punchTime;
+                }
+
+                const gracePeriod = 30 * 60 * 1000;
+                const allowedPunchInEnd = new Date(data.shiftStartTime.getTime() + gracePeriod);
+                const { isWithinWindow, isLate, lateBy } = checkPunchInValidity(
+                    data.punchTime,
+                    data.shiftStartTime,
+                    gracePeriod,
+                    allowedPunchInEnd
+                );
+
+                if (data.punchTime - data.shiftStartTime >= 4 * 60 * 60 * 1000) {    // if punch in is more than 4 hours after shift start time then it is a half day
+                    existingAttendance.isHalfDay = true;
+                    isHalfDayToday = true;
+                }
+
+                if (!isWithinWindow) {
+                    employeeLateMinutes = lateBy;
+                    existingAttendance.isOnTime = false;
+                    await Defaulters.updateOne(
+                        { employeeCode: data.employeeCode, date: startOfToday },
+                        {
+                            $set: {
+                                employeeCode: data.employeeCode,
+                                punchInTime: data.punchTime,
+                                isLate: true,
+                                lateByTime: lateBy,
+                                lateDayCount: 1
+                            }
+                        },
+                        { upsert: true }
+                    );
+                }
+
+                await existingAttendance.save();
+
+            }
+
+            else if (punchType === 'punch-out') {
+                if (!existingAttendance) {
+                    existingAttendance = new UserAttendance({
+                        employeeName : data?.employeeName,
+                        employeeCode: data.employeeCode,
+                        actualPunchInTime: data.shiftStartTime,
+                        userpunchInTime: data.punchTime,
+                        deviceId: data.deviceId,
+                        actualPunchOutTime: data.shiftEndTime,
+                        userPunchOutTime: data.punchTime,
+                        totalHours: "0 hours 0 minutes",
+                        isHalfDay: false,
+                        isValidPunch: false,
+                        hasPunchedOut: true,
+                        isNightShift: true,
+                        isDayShift: false,
+                        isOnTime : false
+                    });
+                }
+                else {
+                    existingAttendance.userPunchOutTime = data.punchTime;
+                    existingAttendance.hasPunchedOut = true;
+
+                    let workedHours;
+                    if (!existingAttendance.isValidPunch && !existingAttendance.hasPunchedIn) {
+                        existingAttendance.userpunchInTime = data.punchTime;
+                        existingAttendance.totalHours = "0 hours 0 minutes";
+                    }
+                    else {
+                        const millisecondsWorked = Math.max(0, data.punchTime - existingAttendance.userpunchInTime);
+                        const totalMinutes = Math.floor(millisecondsWorked / (1000 * 60));
+                        const countingHours = Math.floor(totalMinutes / 60);
+                        const minutes = totalMinutes % 60;
+                        workedHours = `${countingHours} hours ${minutes} minutes`;
+
+                        existingAttendance.totalHours = workedHours;
+                        existingAttendance.isAbsent = countingHours < 4;
+
+                        if (!existingAttendance.isAbsent && countingHours < 8) {
+                            existingAttendance.isHalfDay = true;
+                        }
+
+                        existingAttendance.isValidPunch = !!existingAttendance.isValidPunch;
+                    }
+                    if (existingAttendance.hasPunchedIn && existingAttendance.hasPunchedOut) {
+                        existingAttendance.totalHours = workedHours; 
+                        existingAttendance.isValidPunch = true;
+                    }
+                }
+
+                if (existingAttendance.actualPunchOutTime) {
+                    const { isLeavingEarly, earlyBy } = checkPunchOutValidity(data.punchTime, existingAttendance.actualPunchOutTime);
+
+                    const existingDefaulter = await Defaulters.findOne({
+                        employeeCode: data.employeeCode,
+                        date: { $gte: shiftDateStart, $lt: shiftDateEnd }
+                    });
+
+                    if (isLeavingEarly)
+                    {
+                        existingAttendance.isLeavingEarly = true;
+                        if (existingDefaulter) {
+                            await Defaulters.updateOne(
+                                { employeeCode: data.employeeCode, date: startOfToday },
+                                {
+                                    $set: {
+                                        punchOutTime: data.punchTime,
+                                        earlyBy,
+                                        isLeavingEarly: true
+                                    }
+                                }
+                            );
+                        } else {
+                            await Defaulters.create({
+                                employeeCode: data.employeeCode,
+                                date: startOfToday,
+                                punchOutTime: data.punchTime,
+                                earlyBy,
+                                isLeavingEarly: true
+                            });
+                        }
+                    }
+                    else {
+                        existingAttendance.isLeavingEarly = false;
+                        if (existingDefaulter) {
+                            await Defaulters.updateOne(
+                                { employeeCode: data.employeeCode, date: startOfToday },
+                                {
+                                    $set: {
+                                        punchOutTime: data.punchTime,
+                                        isLeavingEarly: false,
+                                        earlyBy: 0
+                                    }
+                                }
+                            );
+                        }
+                    }
+                }
+                await existingAttendance.save();
+            }
+            await this.messageSendingService.sendMessage({
+                id: existingAttendance._id,
+                employeeCode: data.employeeCode,
+                DeviceId: data.deviceId,
+                punchType,
+                employeeLateMinutes,
+                name: data.name,
+                time: data.punchTime,
+                isHalfDayToday
+            });
+
 
         }
         catch(error){
@@ -529,7 +740,12 @@ export default class AttendanceService {
         const processedResults = [];
 
         for (const record of attendanceData) {
-            let shiftTiming = await this.getShiftType(record.EmpCode);
+            // let shiftTiming = await this.getShiftType(record.EmpCode);
+            let shiftTiming = {
+                shiftTime: "20:00-07:00",
+                name: "vinay",
+                isTodayOff: false
+            }
             if (!shiftTiming) {
                 log.info(`Shift timing not found for employee ${record.EmpCode}`);
                 console.log(`Shift timing not found for employee ${record.EmpCode}`);
@@ -544,6 +760,10 @@ export default class AttendanceService {
 
             let shiftEndTime = new Date(`${shiftDate}T${shiftEndStr}:00.000Z`);
             let isNightShift = shiftEndTime < shiftStartTime ? true : false;
+
+            if(isNightShift){
+                shiftEndTime.setDate(shiftEndTime.getDate() + 1)
+            }
 
             processedResults.push({
                 punchTime,
@@ -582,14 +802,19 @@ export default class AttendanceService {
             console.log(`Processing ${record.employeeCode} at ${record.punchTime}`);
             if (record.isNightShift) {
                 console.log(`${record.employeeCode} is a night shift employee, skipping.`);
+                // try{
+                //     await this.processNightShiftEmployee(record);
+                // }
+                // catch(error){
+                //     console.log(`Error processing for night shift employee :  ${record.employeeCode}: ${error.message}`);
+                // }
                 continue;
-                // this.processNightShiftEmployee(record);
             }
             else {
                 try {
                     await this.processDayShiftEmployee(record);
                 } catch (error) {
-                    console.log(`Error processing ${record.employeeCode}: ${error.message}`);
+                    console.log(`Error processing for day shift employee :  ${record.employeeCode}: ${error.message}`);
                 }           
             }
         }

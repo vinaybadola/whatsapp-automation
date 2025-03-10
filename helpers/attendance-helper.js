@@ -55,6 +55,9 @@ const determinePunchType = async (LocalPunchTime,userDateTime, shiftStart, shift
     if(!latestAttendance){
       return 'punch-in';
     }
+    if(latestAttendance.hasPunchedIn){
+        return 'punch-out';
+    }
   }
 
   // if user punched in after shiftEnd, it's a punch-out

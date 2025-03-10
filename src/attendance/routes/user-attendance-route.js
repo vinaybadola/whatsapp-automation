@@ -14,6 +14,7 @@ router.post('/add-attendance', userAttendanceController.addUserAttendanceData);
 router.get("/all-employee-shift", userAttendanceController.getAllEmployeeShiftData);
 router.get("/get-present-absent-employee", userAttendanceController.getAllUserAbsentPresentData);
 
+router.get("/dashboard", userAttendanceController.getDashboardData)
 
 // Raw attendance routes
 router.get('/raw-attendance', rawAttendanceController.getAllRawAttendanceData);

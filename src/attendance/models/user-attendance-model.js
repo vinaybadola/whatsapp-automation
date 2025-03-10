@@ -10,7 +10,7 @@ const userAttendanceSchema = new Schema({
     userPunchOutTime : { type:Date,required:true},
     totalHours : { type:String,required:true},
     isOnTime : { type:Boolean, default:true},
-    isLeavingEarly : { type:Boolean, default:true},
+    isLeavingEarly : { type:Boolean, default:false},
     isHalfDay : { type:Boolean, default:false},
     isAbsent : { type:Boolean, default:false},
     deviceId : { type:String,required:true},

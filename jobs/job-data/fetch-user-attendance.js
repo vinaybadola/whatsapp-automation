@@ -1,9 +1,10 @@
 import cron from 'node-cron';
 import { sql, connectMSSQL } from '../../config/mssql-database.js';
-
+import {} from "../../config/envConfig.js"
 let attendanceService;
+const THRESHOLD_MS = 2 * 60 * 1000; 
 
-async function fetchDataFromPastHour(time = 40) {
+async function fetchDataFromPast(timeValue = 10, timeUnit = "minutes", empCode = null, dateFilter = null, raw = false) {
   try {
     if (!attendanceService) {
       const { default: AttendanceService } = await import('../../src/attendance/services/attendance-service.js');
@@ -11,21 +12,50 @@ async function fetchDataFromPastHour(time = 40) {
     }
 
     await connectMSSQL();
-    const result = await sql.query`
-      SELECT EmpCode, DateTime, DeviceId
-      FROM dbo.Punchlogs
-      WHERE DateTime >= DATEADD(MINUTE, -${time}, GETDATE())
-      ORDER BY DateTime DESC
-    `;
 
-    return result.recordset;
+    let timeCondition = "";
+    let dateCondition = "";
+    let empCondition = "";
+
+    // 🔹 Time Filter (Minutes or Hours)
+    if (timeUnit === "minutes") {
+      timeCondition = `DateTime >= DATEADD(MINUTE, -${timeValue}, GETDATE())`;
+    } else if (timeUnit === "hours") {
+      timeCondition = `DateTime >= DATEADD(HOUR, -${timeValue}, GETDATE())`;
+    }
+
+    // 🔹 Date Filter (Today, Yesterday, Custom Date)
+    if (dateFilter) {
+      if (dateFilter === "today") {
+        dateCondition = `AND CAST(DateTime AS DATE) = CAST(GETDATE() AS DATE)`;
+      } else if (dateFilter === "yesterday") {
+        dateCondition = `AND CAST(DateTime AS DATE) = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE)`;
+      } else {
+        dateCondition = `AND CAST(DateTime AS DATE) = '${dateFilter}'`; 
+      }
+    }
+
+    // 🔹 Employee Code Filter
+    if (empCode) {
+      empCondition = `AND EmpCode = '${empCode}'`;
+    }
+
+    // 🔥 **Final Query**
+    const query =  
+    ` SELECT EmpCode, DateTime, DeviceId FROM dbo.Punchlogs WHERE ${timeCondition} ${dateCondition} ${empCondition} ORDER BY DateTime DESC`;
+    
+    const result = await sql.query(query);
+    if(raw == "true"){
+      return result.recordset;
+    }
+    const mergeData = mergePunches(result.recordset);
+    return mergeData;
   } catch (error) {
     console.error('Error fetching data:', error);
     throw error;
   }
 }
 
-const THRESHOLD_MS = 2 * 60 * 1000; 
 
 function mergePunches(punchRecords) {
   // Group records by EmpCode
@@ -71,40 +101,36 @@ const runFetchUserAttendanceJob = () => {
         const { default: AttendanceService } = await import('../../src/attendance/services/attendance-service.js');
         attendanceService = new AttendanceService();
       }
-      const data = await fetchDataFromPastHour();
-      // const data = [
-      //   {
-      //     EmpCode: 'WIBRO0065',
-      //     DateTime: '2025-03-07T11:03:02.000Z',
-      //     DeviceId: 'DELHI'
-      //   },
-      //   {
-      //     EmpCode: 'WIBRO0065',
-      //     DateTime: '2025-03-07T11:03:10.000Z',
-      //     DeviceId: 'DELHI'
-      //   },
-      //   {
-      //     EmpCode: 'WIBRO0065',
-      //     DateTime: '2025-03-07T11:03:20.000Z',
-      //     DeviceId: 'DELHI'
-      //   },
-      //   {
-      //     EmpCode: 'WIBRO0065',
-      //     DateTime: '2025-03-07T11:04:40.000Z',
-      //     DeviceId: 'DELHI'
-      //   },
-      // ];
+      const data = await fetchDataFromPast();
+      //  const data = [
+        // {
+        //   EmpCode: 'WIBRO0065',
+        //   DateTime: '2025-03-07T11:03:02.000Z',
+        //   DeviceId: 'DELHI'
+        // },
+        // {
+        //   EmpCode: 'WIBRO0065',
+        //   DateTime: '2025-03-07T11:03:10.000Z',
+        //   DeviceId: 'DELHI'
+        // },
+        // {
+        //   EmpCode: 'WIBRO0065',
+        //   DateTime: '2025-03-07T11:03:20.000Z',
+        //   DeviceId: 'DELHI'
+        // },
+        // {
+        //   EmpCode: 'WIBRO0065',
+        //   DateTime: '2025-03-07T11:04:40.000Z',
+        //   DeviceId: 'DELHI'
+        // },
+      //];
 
       if(data.length === 0){
         console.log('No new attendance data found');
         return "No new attendance data found to process in runFetchUserAttendanceJob function !";
       }
-
-      const mergedAttendance = mergePunches(data);
-
-      console.log('Merged attendance:', mergedAttendance);
-
-      const processedData = await attendanceService.processRawData(mergedAttendance);
+      console.log('Merged attendance:', data);
+      const processedData = await attendanceService.processRawData(data);
 
       await attendanceService.processShiftType(processedData);
     } catch (error) {
@@ -113,4 +139,4 @@ const runFetchUserAttendanceJob = () => {
   });
 };
 
-export { runFetchUserAttendanceJob, fetchDataFromPastHour, mergePunches };
+export { runFetchUserAttendanceJob, fetchDataFromPast, mergePunches };
