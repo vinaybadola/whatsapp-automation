@@ -802,13 +802,13 @@ export default class AttendanceService {
             console.log(`Processing ${record.employeeCode} at ${record.punchTime}`);
             if (record.isNightShift) {
                 console.log(`${record.employeeCode} is a night shift employee, skipping.`);
-                try{
-                    await this.processNightShiftEmployee(record);
-                }
-                catch(error){
-                    console.log(`Error processing for night shift employee :  ${record.employeeCode}: ${error.message}`);
-                }
-                // continue;
+                // try{
+                //     await this.processNightShiftEmployee(record);
+                // }
+                // catch(error){
+                //     console.log(`Error processing for night shift employee :  ${record.employeeCode}: ${error.message}`);
+                // }
+                continue;
             }
             else {
                 try {

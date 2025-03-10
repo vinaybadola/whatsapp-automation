@@ -101,8 +101,8 @@ const runFetchUserAttendanceJob = () => {
         const { default: AttendanceService } = await import('../../src/attendance/services/attendance-service.js');
         attendanceService = new AttendanceService();
       }
-      //const data = await fetchDataFromPast();
-       const data = [
+      const data = await fetchDataFromPast();
+      //  const data = [
         // {
         //   EmpCode: 'WIBRO0065',
         //   DateTime: '2025-03-07T11:03:02.000Z',
@@ -123,7 +123,7 @@ const runFetchUserAttendanceJob = () => {
         //   DateTime: '2025-03-07T11:04:40.000Z',
         //   DeviceId: 'DELHI'
         // },
-      ];
+      //];
 
       if(data.length === 0){
         console.log('No new attendance data found');
