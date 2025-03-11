@@ -740,12 +740,7 @@ export default class AttendanceService {
         const processedResults = [];
 
         for (const record of attendanceData) {
-            // let shiftTiming = await this.getShiftType(record.EmpCode);
-            let shiftTiming = {
-                shiftTime: "20:00-07:00",
-                name: "vinay",
-                isTodayOff: false
-            }
+             let shiftTiming = await this.getShiftType(record.EmpCode);
             if (!shiftTiming) {
                 log.info(`Shift timing not found for employee ${record.EmpCode}`);
                 console.log(`Shift timing not found for employee ${record.EmpCode}`);
