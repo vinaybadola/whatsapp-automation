@@ -56,7 +56,6 @@ async function fetchDataFromPast(timeValue = 10, timeUnit = "minutes", empCode =
   }
 }
 
-
 function mergePunches(punchRecords) {
   // Group records by EmpCode
   const grouped = {};

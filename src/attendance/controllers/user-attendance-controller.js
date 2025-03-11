@@ -402,7 +402,7 @@ export default class UserAttendanceController {
                     userData.push({
                         onTime: true,
                         empCode: employee.employeeCode,
-                        name: employee.name,
+                        name: employee.employeeName,
                         userPunchInTime: employee.userpunchInTime,
                         userPunchOutTime: employee.userPunchOutTime
                     });
@@ -411,7 +411,7 @@ export default class UserAttendanceController {
                     userData.push({
                         isLate: true,
                         empCode: employee.employeeCode,
-                        name: employee.name,
+                        name: employee.employeeName,
                         userPunchInTime: employee.userpunchInTime,
                         userPunchOutTime: employee.userPunchOutTime
                     });
