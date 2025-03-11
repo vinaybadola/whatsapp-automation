@@ -368,40 +368,37 @@ export default class UserAttendanceController {
         }
     };
 
-    getDashboardData = async(req,res) =>{
-        try{
-            const {shiftTiming="10:00-19:00"} = req.query;
-
-            const query = {};
-
-            // fectch the total number of employees present in the shift
-            let date = new Date().toISOString().split("T")[0];
-
-            if(req.query.date){
-                query.date = req.query.date;
+    getDashboardData = async (req, res) => {
+        try {
+            const { shiftTiming = "10:00-19:00", page = 0, date } = req.query;
+    
+            let targetDate = new Date();
+            if (date) {
+                targetDate = new Date(date);
             }
-
-            const shiftTimings = await this.getTotalEmployeeCountAccordingtoShift(date);
+            const formattedDate = targetDate.toISOString().split("T")[0];
+    
+            const shiftTimings = await this.getTotalEmployeeCountAccordingtoShift(formattedDate);
+            const getOnlyShiftTimings = shiftTimings.map((shift) => shift.shiftTime);
             const shift = shiftTimings.find((shift) => shift.shiftTime === shiftTiming);
             const totalEmployees = shift ? shift.employees.length : 0;
-
-            // fetch the total number of employees present today
+    
             const presentEmployees = await UserAttendance.find({
                 userpunchInTime: {
-                    $gte: new Date(date + "T00:00:00.000Z"),
-                    $lt: new Date(date + "T23:59:59.999Z")
+                    $gte: new Date(formattedDate + "T00:00:00.000Z"),
+                    $lt: new Date(formattedDate + "T23:59:59.999Z")
                 },
-            })
-
+            });
+    
             const presentEmployeesCount = presentEmployees.length;
             const absentEmployeesCount = totalEmployees - presentEmployeesCount;
-            
+    
             let onTimeEmployeesCount = 0;
             let lateEmployeesCount = 0;
-
             const userData = [];
-            for(const employee of presentEmployees){
-                if(employee.isOnTime){
+    
+            for (const employee of presentEmployees) {
+                if (employee.isOnTime) {
                     userData.push({
                         onTime: true,
                         empCode: employee.employeeCode,
@@ -410,8 +407,7 @@ export default class UserAttendanceController {
                         userPunchOutTime: employee.userPunchOutTime
                     });
                     onTimeEmployeesCount++;
-                }
-                else if(employee.isOnTime === false){
+                } else if (employee.isOnTime === false) {
                     userData.push({
                         isLate: true,
                         empCode: employee.employeeCode,
@@ -422,7 +418,33 @@ export default class UserAttendanceController {
                     lateEmployeesCount++;
                 }
             }
-
+    
+            // Graph data logic remains the same
+            let startDate = new Date();
+            startDate.setDate(startDate.getDate() - page * 10); 
+            let endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() - 9);
+    
+            const last10DaysData = await UserAttendance.aggregate([
+                {
+                    $match: {
+                        userpunchInTime: {
+                            $gte: new Date(endDate.toISOString().split("T")[0] + "T00:00:00.000Z"),
+                            $lte: new Date(startDate.toISOString().split("T")[0] + "T23:59:59.999Z")
+                        }
+                    }
+                },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: "%Y-%m-%d", date: "$userpunchInTime" } },
+                        presentEmployeesCount: { $sum: 1 },
+                        onTimeEmployeesCount: { $sum: { $cond: [{ $eq: ["$isOnTime", true] }, 1, 0] } },
+                        lateEmployeesCount: { $sum: { $cond: [{ $eq: ["$isOnTime", false] }, 1, 0] } }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]);
+    
             return res.status(200).json({
                 success: true,
                 totalEmployees,
@@ -430,18 +452,24 @@ export default class UserAttendanceController {
                 absentEmployeesCount,
                 onTimeEmployeesCount,
                 lateEmployeesCount,
-                userData
+                getOnlyShiftTimings,
+                userData,
+                graphData: last10DaysData, 
+                pagination: {
+                    currentPage: parseInt(page),
+                    nextPage: parseInt(page) + 1,
+                    prevPage: parseInt(page) > 0 ? parseInt(page) - 1 : null
+                }
             });
-
-        }
-        catch(error){
+    
+        } catch (error) {
             console.error("Error fetching dashboard data:", error);
             if (error instanceof Error) {
                 return errorResponseHandler(error.message, 400, res);
             }
             return errorResponseHandler("Internal Server Error", 500, res);
         }
-    }
+    };
 
     getTotalEmployeeCountAccordingtoShift = async (date) => {
         try {
