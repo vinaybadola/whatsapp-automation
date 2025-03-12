@@ -107,7 +107,7 @@ const runFetchUserAttendanceJob = () => {
         data = [
           {
             EmpCode: 'WIBRO0065',
-            DateTime: '2025-03-07T11:03:02.000Z',
+            DateTime: '2025-03-12T10:03:02.000Z',
             DeviceId: 'DELHI'
           }
         ]

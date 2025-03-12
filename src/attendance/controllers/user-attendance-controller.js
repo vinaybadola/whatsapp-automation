@@ -14,7 +14,7 @@ export default class UserAttendanceController {
      */
     getUserAttendanceData = async (req, res) => {
         try {
-            const { employeeCode, filterType = "day", startDate, endDate } = req.query;
+            const { employeeCode, filterType = "day", startDate, endDate, id } = req.query;
 
             if (!employeeCode) {
                 return errorResponseHandler("Employee code is required", 400, res);
@@ -51,10 +51,24 @@ export default class UserAttendanceController {
                     if (!startDate || !endDate) {
                         return errorResponseHandler("Start and End dates are required for custom range", 400, res);
                     }
-                    filter.userpunchInTime = { $gte: new Date(startDate), $lt: new Date(endDate) };
-                    break;
+                    const startOfDay = new Date(customDate);
+                    startOfDay.setHours(0, 0, 0, 0); 
+                  
+                    const endOfDay = new Date(customDate);
+                    endOfDay.setHours(23, 59, 59, 999); // End of the day (23:59:59.999)
+                  
+                    // Update the filter to check for records within the day
+                    filter.$or = [
+                      { userpunchInTime: { $gte: startOfDay, $lt: endOfDay } },
+                      { userPunchOutTime: { $gte: startOfDay, $lt: endOfDay } }
+                    ];
+                    break;           
                 default:
-                    return errorResponseHandler("Invalid filter type", 400, res);
+                return errorResponseHandler("Invalid filter type", 400, res);
+            }
+
+            if(id){
+                filter._id = id;
             }
 
             const stats = await this.userAttendanceDataService.getUserStats(employeeCode, filterType);
