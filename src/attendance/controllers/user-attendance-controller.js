@@ -51,10 +51,10 @@ export default class UserAttendanceController {
                     if (!startDate || !endDate) {
                         return errorResponseHandler("Start and End dates are required for custom range", 400, res);
                     }
-                    const startOfDay = new Date(customDate);
+                    const startOfDay = new Date(startDate);
                     startOfDay.setHours(0, 0, 0, 0); 
                   
-                    const endOfDay = new Date(customDate);
+                    const endOfDay = new Date(endDate);
                     endOfDay.setHours(23, 59, 59, 999); // End of the day (23:59:59.999)
                   
                     // Update the filter to check for records within the day
