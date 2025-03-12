@@ -55,9 +55,8 @@ export default class UserAttendanceController {
                     startOfDay.setHours(0, 0, 0, 0); 
                   
                     const endOfDay = new Date(endDate);
-                    endOfDay.setHours(23, 59, 59, 999); // End of the day (23:59:59.999)
+                    endOfDay.setHours(23, 59, 59, 999);
                   
-                    // Update the filter to check for records within the day
                     filter.$or = [
                       { userpunchInTime: { $gte: startOfDay, $lt: endOfDay } },
                       { userPunchOutTime: { $gte: startOfDay, $lt: endOfDay } }
@@ -70,8 +69,7 @@ export default class UserAttendanceController {
             if(id){
                 filter._id = id;
             }
-
-            const stats = await this.userAttendanceDataService.getUserStats(employeeCode, filterType);
+            const stats = await this.userAttendanceDataService.getUserStats(employeeCode, filterType, startDate, endDate);
             const attendanceData = await UserAttendance.find(filter).sort({ updatedAt: -1 });
             return res.status(200).json({ success: true, data: attendanceData, stats });
 

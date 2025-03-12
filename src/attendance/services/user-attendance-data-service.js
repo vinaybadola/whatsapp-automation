@@ -4,13 +4,13 @@ import UserAttendance from "../models/user-attendance-model.js";
 
 export default class UserAttendanceDataService {
 
-    getUserStats = async (employeeCode, filterType = "week") => {
+    getUserStats = async (employeeCode, filterType = "week", customStartDate, endDate) => {
         try {
             if (!employeeCode) {
                 return errorResponseHandler("Employee code is required", 400);
             }
 
-            const { startDate, daysInRange } = this.getDateRange(filterType);
+            const { startDate, daysInRange } = this.getDateRange(filterType, customStartDate, endDate);
             const attendanceRecords = await UserAttendance.find({ employeeCode, updatedAt: { $gte: startDate } }).lean();
             const defaulterRecords = await Defaulters.find({ employeeCode, updatedAt: { $gte: startDate } }).lean();
 
@@ -29,7 +29,10 @@ export default class UserAttendanceDataService {
             return errorResponseHandler(error.message, 500);
         }
     };
-    getDateRange(filterType) {
+    getDateRange(filterType, customStartDate, endDate) {
+        if (filterType === "custom" && (!customStartDate || !endDate)) {
+            throw new Error("Start date and end date are required for custom filter type");
+        }   
         const today = new Date();
         let startDate, daysInRange;
 
@@ -46,6 +49,11 @@ export default class UserAttendanceDataService {
                 startDate = new Date(today.setFullYear(today.getFullYear() - 1));
                 daysInRange = 365;
                 break;
+            case "custom":    
+                startDate = new Date(customStartDate);
+                const end = new Date(endDate);
+                daysInRange = (end - startDate) / (1000 * 3600 * 24);
+            break;
             default:
                 throw new Error("Invalid filter type");
         }
