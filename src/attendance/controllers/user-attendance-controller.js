@@ -58,7 +58,7 @@ export default class UserAttendanceController {
                     endOfDay.setHours(23, 59, 59, 999);
                   
                     filter.$or = [
-                      { userpunchInTime: { $gte: startOfDay, $lt: endOfDay } },
+                      { userpunchInTime: { $gte: startOfDay.toISOString(), $lt: endOfDay.toISOString() } },
                       { userPunchOutTime: { $gte: startOfDay, $lt: endOfDay } }
                     ];
                     break;           

@@ -29,9 +29,10 @@ export default class UserAttendanceDataService {
             return errorResponseHandler(error.message, 500);
         }
     };
-    getDateRange(filterType, customStartDate, endDate) {
-        if (filterType === "custom" && (!customStartDate || !endDate)) {
-            throw new Error("Start date and end date are required for custom filter type");
+    getDateRange(filterType) {
+        // if filterType is custom then change it into week 
+        if (filterType === "custom") {
+            filterType = "week";
         }   
         const today = new Date();
         let startDate, daysInRange;
@@ -49,11 +50,6 @@ export default class UserAttendanceDataService {
                 startDate = new Date(today.setFullYear(today.getFullYear() - 1));
                 daysInRange = 365;
                 break;
-            case "custom":    
-                startDate = new Date(customStartDate);
-                const end = new Date(endDate);
-                daysInRange = (end - startDate) / (1000 * 3600 * 24);
-            break;
             default:
                 throw new Error("Invalid filter type");
         }
