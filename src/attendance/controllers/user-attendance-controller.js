@@ -370,7 +370,7 @@ export default class UserAttendanceController {
 
     getDashboardData = async (req, res) => {
         try {
-            const { shiftTiming = "10:00-19:00", page = 0, date } = req.query;
+            const { shiftTiming = "10:00-19:00", page = 0, date, filter, empCode } = req.query;
     
             let targetDate = new Date();
             if (date) {
@@ -383,45 +383,58 @@ export default class UserAttendanceController {
             const shift = shiftTimings.find((shift) => shift.shiftTime === shiftTiming);
             const totalEmployees = shift ? shift.employees.length : 0;
     
-            const presentEmployees = await UserAttendance.find({
+            // Create a query filter based on request
+            let attendanceFilter = {
                 userpunchInTime: {
                     $gte: new Date(formattedDate + "T00:00:00.000Z"),
                     $lt: new Date(formattedDate + "T23:59:59.999Z")
-                },
-            });
+                }
+            };
     
-            const presentEmployeesCount = presentEmployees.length;
-            const absentEmployeesCount = totalEmployees - presentEmployeesCount;
+            if (empCode) {
+                attendanceFilter.employeeCode = empCode; // Search by employee code
+            }
+    
+            const presentEmployees = await UserAttendance.find(attendanceFilter).sort({ updatedAt: -1 });
+    
+            let presentEmployeesCount = presentEmployees.length;
+            let absentEmployeesCount = totalEmployees - presentEmployeesCount;
     
             let onTimeEmployeesCount = 0;
             let lateEmployeesCount = 0;
-            const userData = [];
+            let userData = [];
     
             for (const employee of presentEmployees) {
+                const employeeData = {
+                    empCode: employee.employeeCode,
+                    name: employee.employeeName,
+                    userPunchInTime: employee.userpunchInTime,
+                    userPunchOutTime: employee.userPunchOutTime
+                };
+    
                 if (employee.isOnTime) {
-                    userData.push({
-                        onTime: true,
-                        empCode: employee.employeeCode,
-                        name: employee.employeeName,
-                        userPunchInTime: employee.userpunchInTime,
-                        userPunchOutTime: employee.userPunchOutTime
-                    });
+                    employeeData.onTime = true;
                     onTimeEmployeesCount++;
-                } else if (employee.isOnTime === false) {
-                    userData.push({
-                        isLate: true,
-                        empCode: employee.employeeCode,
-                        name: employee.employeeName,
-                        userPunchInTime: employee.userpunchInTime,
-                        userPunchOutTime: employee.userPunchOutTime
-                    });
+                } else {
+                    employeeData.isLate = true;
                     lateEmployeesCount++;
                 }
+    
+                userData.push(employeeData);
             }
     
-            // Graph data logic remains the same
+            // If filter is applied, return only that category
+            if (filter === "late") {
+                userData = userData.filter(emp => emp.isLate);
+            } else if (filter === "onTime") {
+                userData = userData.filter(emp => emp.onTime);
+            } else if (filter === "absent") {
+                userData = []; // Since absent employees are not in attendance records
+            }
+    
+            // Graph data remains the same
             let startDate = new Date();
-            startDate.setDate(startDate.getDate() - page * 10); 
+            startDate.setDate(startDate.getDate() - page * 10);
             let endDate = new Date(startDate);
             endDate.setDate(endDate.getDate() - 9);
     
@@ -454,7 +467,7 @@ export default class UserAttendanceController {
                 lateEmployeesCount,
                 getOnlyShiftTimings,
                 userData,
-                graphData: last10DaysData, 
+                graphData: last10DaysData,
                 pagination: {
                     currentPage: parseInt(page),
                     nextPage: parseInt(page) + 1,
@@ -469,7 +482,7 @@ export default class UserAttendanceController {
             }
             return errorResponseHandler("Internal Server Error", 500, res);
         }
-    };
+    };    
 
     getTotalEmployeeCountAccordingtoShift = async (date) => {
         try {
