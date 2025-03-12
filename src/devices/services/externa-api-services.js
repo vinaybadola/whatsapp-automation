@@ -13,8 +13,9 @@ export default class ExternalApiService{
         this.deviceListServices = new DeviceListServices( this.deviceListRepository, new UserRepository());
     }
 
-    sendIndividualMessage = async(data)=>{
-        const {apiToken, message, phoneNumber, source} = data;
+    sendIndividualMessage = async (data) => {
+        const { apiToken, message, phoneNumber, source, socket } = data;
+        
         const findUser = await DeviceListModel.findOne({
             apiToken: apiToken,
             reasonForDisconnect: { $ne: 401 }
@@ -22,24 +23,33 @@ export default class ExternalApiService{
             path: 'sessionId',
             select: 'socketessionId' 
         });
-
+    
         if (!findUser) {
-            return response({ success: false, error: 'No user found for API token!' });
-        }
-        const sessionId = findUser.sessionId?.socketessionId;
-        if (!sessionId) {
-            return response({ success: false, error: 'No session found for this device!' });
+            return { success: false, error: 'No user found for API token!' };
         }
         
+        const sessionId = findUser.sessionId?.socketessionId;
+        if (!sessionId) {
+            return { success: false, error: 'No session found for this device!' };
+        }
+    
         const userId = findUser.userId;
         const devicePhone = findUser.devicePhone;
         const mode = "message-processing";
-        const io = req.app.get('socketio');
+        const io = socket; 
         const formattedPhoneNumber = formatPhoneNumber(phoneNumber); 
         const messageContent = message;
-        const response = await connectServices.sendIndividualMessage(sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone,source);
-        return response({ success: true, message: response.message });
-    }
+    
+        try {
+            await connectServices.sendIndividualMessage(
+                sessionId, io, userId, formattedPhoneNumber, messageContent, mode, devicePhone, source
+            );
+            return { success: true, message: "Message queued successfully" };
+        } catch (error) {
+            console.error("Error queuing message:", error.message);
+            return { success: false, error: `Failed to queue message: ${error.message}` };
+        }
+    };
 
     sendGroupMessage = async(data) =>{
         try{

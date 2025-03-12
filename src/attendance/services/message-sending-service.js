@@ -8,6 +8,8 @@ import Template from "../../templates/models/template-model.js";
 import { formatMessage } from '../../../helpers/message-helper.js';
 import UserAttendance from "../../attendance/models/user-attendance-model.js";
 import moment from 'moment-timezone';
+import {localEnvironment} from "../../../config/envConfig.js";
+
 import {log} from "../../../utils/logger.js";
 
 export default class MessageSendingService {
@@ -112,7 +114,13 @@ export default class MessageSendingService {
                 }
                 messageContent = formatMessage(data, templateCache["employee-checkout"]);
             }
-            await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
+            if(localEnvironment === "true"){
+                console.log('Message will not be sent in local environment');
+                return "Message will not be sent in local environment";
+            }
+            else{
+                await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
+            }
             //TODO: await UserAttendance.updateOne({ _id: record._id }, { $set: { messageSent: true } });
             log.info(`Message has been queued to ${getUserData.name} with phone number ${formattedPhoneNumber}`);
             return "Job completed successfully";

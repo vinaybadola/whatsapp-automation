@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { sql, connectMSSQL } from '../../config/mssql-database.js';
 import {} from "../../config/envConfig.js"
+import {localEnvironment} from "../../config/envConfig.js"
 let attendanceService;
 const THRESHOLD_MS = 2 * 60 * 1000; 
 
@@ -100,29 +101,20 @@ const runFetchUserAttendanceJob = () => {
         const { default: AttendanceService } = await import('../../src/attendance/services/attendance-service.js');
         attendanceService = new AttendanceService();
       }
-      const data = await fetchDataFromPast();
-      //  const data = [
-        // {
-        //   EmpCode: 'WIBRO0065',
-        //   DateTime: '2025-03-07T11:03:02.000Z',
-        //   DeviceId: 'DELHI'
-        // },
-        // {
-        //   EmpCode: 'WIBRO0065',
-        //   DateTime: '2025-03-07T11:03:10.000Z',
-        //   DeviceId: 'DELHI'
-        // },
-        // {
-        //   EmpCode: 'WIBRO0065',
-        //   DateTime: '2025-03-07T11:03:20.000Z',
-        //   DeviceId: 'DELHI'
-        // },
-        // {
-        //   EmpCode: 'WIBRO0065',
-        //   DateTime: '2025-03-07T11:04:40.000Z',
-        //   DeviceId: 'DELHI'
-        // },
-      //];
+      let data = [];
+      if(localEnvironment === "true"){
+        console.log('Running fetch-user-attendance job in LOCAL environment');
+        data = [
+          {
+            EmpCode: 'WIBRO0065',
+            DateTime: '2025-03-07T11:03:02.000Z',
+            DeviceId: 'DELHI'
+          }
+        ]
+      }
+      else if(localEnvironment === "false"){
+        data = await fetchDataFromPast();
+      }
 
       if(data.length === 0){
         console.log('No new attendance data found');

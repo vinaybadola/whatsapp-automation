@@ -47,10 +47,14 @@ export default class ExternalController{
             if(!apiToken || !message || !phoneNumber){
                 return res.status(400).json({success: false, error: 'Missing required fields'});
             }
+            const socket = req.app.get('socketio');
+            const response = await this.externalApiService.sendIndividualMessage({apiToken, message, phoneNumber,source,socket});
 
-            const response = await this.externalApiService.sendIndividualMessage(apiToken, message, phoneNumber,source);
+            if (!response.success) {
+                return res.status(400).json({ success: false, error: response.error });
+            }
 
-            return res.status(200).json({ success: true, message: response.message });
+            return res.status(200).json({ success: true, message: response?.message });
         }
         catch(err){
             console.log(`An error occurred while sending message in the controller : ${err.message}`);

@@ -17,6 +17,7 @@ export const secretKey = process.env.SECRET_KEY;
 export const refreshTokenExpirationTime = 7 * 24 * 60 * 60 * 1000;
 export const frontendUri = process.env.FRONTEND_URL || "http://localhost:3000";
 export const environment = process.env.NODE_ENV;
+export const localEnvironment = process.env.LOCAL_ENVIRONMENT || false;
 
 // Configurations for third party whatsmate API 
 export const wmateClientId = process.env.WMATE_CLIENT_ID;
