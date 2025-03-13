@@ -12,7 +12,6 @@ router.get('/', userAttendanceController.getAllUserAttendanceData);
 router.put('/update-attendance/:empCode', userAttendanceController.updateUserAttendanceData);
 router.post('/add-attendance', userAttendanceController.addUserAttendanceData);
 router.get("/all-employee-shift", userAttendanceController.getAllEmployeeShiftData);
-router.get("/get-present-absent-employee", userAttendanceController.getAllUserAbsentPresentData);
 
 router.get("/dashboard", userAttendanceController.getDashboardData);
 router.get("/id/:id", userAttendanceController.getUserAttendanceById);
