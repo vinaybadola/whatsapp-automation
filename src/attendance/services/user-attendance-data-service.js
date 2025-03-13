@@ -4,13 +4,13 @@ import UserAttendance from "../models/user-attendance-model.js";
 
 export default class UserAttendanceDataService {
 
-    getUserStats = async (employeeCode, filterType = "week", customStartDate, endDate) => {
+    getUserStats = async (employeeCode, filterType = "week") => {
         try {
             if (!employeeCode) {
                 return errorResponseHandler("Employee code is required", 400);
             }
 
-            const { startDate, daysInRange } = this.getDateRange(filterType, customStartDate, endDate);
+            const { startDate, daysInRange } = this.getDateRange(filterType);
             const attendanceRecords = await UserAttendance.find({ employeeCode, updatedAt: { $gte: startDate } }).lean();
             const defaulterRecords = await Defaulters.find({ employeeCode, updatedAt: { $gte: startDate } }).lean();
 
@@ -29,11 +29,7 @@ export default class UserAttendanceDataService {
             return errorResponseHandler(error.message, 500);
         }
     };
-    getDateRange(filterType) {
-        // if filterType is custom then change it into week 
-        if (filterType === "custom") {
-            filterType = "week";
-        }   
+    getDateRange(filterType) {      
         const today = new Date();
         let startDate, daysInRange;
 

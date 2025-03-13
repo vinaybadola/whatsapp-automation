@@ -276,109 +276,6 @@ export default class UserAttendanceController {
         }
     };
 
-    /**
-     * Get all user absent/present (Paginated)
-     */
-
-    getAllUserAbsentPresentData = async (req, res) => {
-        try {
-            const { page, limit, skip } = paginate(req);
-            const query = {};
-
-            if (req.query.employeeCode) {
-                query.employeeCode = req.query.employeeCode;
-            }
-
-            if (req.query.shiftTime) {
-                query.shiftTime = req.query.shiftTime;
-            }
-
-            if (req.query.deviceId) {
-                query.deviceId = req.query.deviceId;
-            }
-
-            if (req.query.today === "true") {
-                const today = new Date();
-                query.userpunchInTime = {
-                    $gte: new Date(today.setHours(0, 0, 0, 0)),
-                    $lt: new Date(today.setHours(23, 59, 59, 999))
-                };
-            }
-
-            // 🔹 Filter by Specific Date
-            if (req.query.date) {
-                const selectedDate = new Date(req.query.date);
-                if (selectedDate.toString() === "Invalid Date") {
-                    return errorResponseHandler("Invalid Date Format", 400, res);
-                }
-                query.userpunchInTime = {
-                    $gte: new Date(selectedDate.setHours(0, 0, 0, 0)).toISOString(),
-                    $lt: new Date(selectedDate.setHours(23, 59, 59, 999)).toISOString()
-                };
-            }
-
-            // 🔹 Filter by Date Range (Start Date - End Date)
-            else if (req.query.startDate && req.query.endDate) {
-                query.userpunchInTime = {
-                    $gte: new Date(req.query.startDate).toISOString(),
-                    $lt: new Date(req.query.endDate).toISOString()
-                };
-            }
-
-            const presentEmployeeCount = await UserAttendance.aggregate([
-                {
-                    $match: {
-                        ...query,
-                        hasPunchedIn: true,
-                        hasPunchedOut: true
-                    }
-                },
-                { $group: { _id: "$employeeCode" } },
-                { $count: "presentCount" }
-            ]);
-
-            const absentEmployeeCount = await UserAttendance.aggregate([
-                {
-                    $match: {
-                        ...query,
-                        isAbsent: true,
-                        hasPunchedIn: false,
-                        hasPunchedOut: false
-                    }
-                },
-                { $group: { _id: "$employeeCode" } },
-                { $count: "absentCount" }
-            ]);
-
-            const presentCount = presentEmployeeCount.length > 0 ? presentEmployeeCount[0].presentCount : 0;
-            const absentCount = absentEmployeeCount.length > 0 ? absentEmployeeCount[0].absentCount : 0;
-
-
-            // 🔹 Fetch Attendance Data
-            const attendanceData = await UserAttendance.find(query)
-                .skip(skip)
-                .limit(limit)
-                .sort({ updatedAt: -1 });
-
-            const total = await UserAttendance.countDocuments(query);
-            const pagination = paginateReturn(page, limit, total, attendanceData.length);
-
-            return res.status(200).json({
-                success: true,
-                data: attendanceData,
-                presentEmployeeCount: presentCount,
-                absentEmployeeCount: absentCount,
-                pagination
-            });
-
-        } catch (error) {
-            console.error("Error fetching attendance data:", error);
-            if (error instanceof Error) {
-                return errorResponseHandler(error.message, 400, res);
-            }
-            return errorResponseHandler("Internal Server Error", 500, res);
-        }
-    };
 
     getDashboardData = async (req, res) => {
         try {
@@ -534,6 +431,54 @@ export default class UserAttendanceController {
         } catch (error) {
             console.error("Error fetching shift timings:", error);
             throw error;
+        }
+    }
+
+    getUserAttendanceById = async (req, res) => {
+        try{
+            const { id , filterType =  "week"} = req.params;
+            if (!id) {
+                return errorResponseHandler("Attendance ID is required", 400, res);
+            }
+            const attendanceData = await UserAttendance.findById(id);
+            if (!attendanceData) {
+                return errorResponseHandler("Attendance record not found", 404, res);
+            }
+            
+            const employeeCode = attendanceData.employeeCode;
+            const stats = await this.userAttendanceDataService.getUserStats(employeeCode,filterType);
+            
+            return res.status(200).json({ success: true, data: attendanceData, stats });
+        }
+        catch(error){
+            console.error("Error fetching attendance data:", error);
+            if (error instanceof Error) {
+                return errorResponseHandler(error.message, 400, res);
+            }
+            return errorResponseHandler("Internal Server Error", 500, res);
+        }
+    }
+
+    getUserAttendanceHistory = async(req,res) =>{
+        try{
+            const {employeeCode} = req.query;
+            const { page, limit, skip } = paginate(req);
+
+            if (!employeeCode) {
+                return errorResponseHandler("Employee code is required", 400, res);
+            }
+            const historyData = await UserAttendance.find({employeeCode}).skip(skip).limit(limit).sort({ updatedAt: -1 });
+            const total = await UserAttendance.countDocuments({employeeCode});
+            const pagination = paginateReturn(page, limit, total, historyData.length);
+
+            return res.status(200).json({ success: true, data: historyData, pagination });
+        }
+        catch(error){
+            console.error("Error fetching history data:", error);
+            if (error instanceof Error) {
+                return errorResponseHandler(error.message, 400, res);
+            }
+            return errorResponseHandler("Internal Server Error", 500, res);
         }
     }
 }
