@@ -461,7 +461,7 @@ export default class UserAttendanceController {
 
     getUserAttendanceHistory = async(req,res) =>{
         try{
-            const {employeeCode} = req.query;
+            const {employeeCode} = req.params;
             const { page, limit, skip } = paginate(req);
 
             if (!employeeCode) {
