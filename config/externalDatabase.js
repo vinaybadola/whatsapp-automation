@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { externalMongoUri } from './envConfig.js';
 
-let connections = {}; // Store multiple database instances
+let connections = {}; // Storing multiple database instances
 
 async function connectExternalMongo(dbName = 'shiftRoaster') {
   if (!connections[dbName]) {
@@ -18,23 +18,27 @@ async function connectExternalMongo(dbName = 'shiftRoaster') {
           connections._baseConnection.once('error', reject);
         });
 
-        console.log('✅ Connected to external MongoDB');
+        console.log('Connected to external MongoDB');
       }
 
       // Use the specified database and store it
       connections[dbName] = connections._baseConnection.useDb(dbName);
-      console.log(`✅ Using database: ${dbName}`);
+      console.log(`Using database: ${dbName}`);
 
     } catch (error) {
-      console.error('❌ Error connecting to external MongoDB:', error);
+      console.error('Error connecting to external MongoDB:', error);
       process.exit(1);
     }
   }
   return connections[dbName]; // Return the selected database instance
 }
 
-// **Connect to required databases**
-const shiftRoasterDB = await connectExternalMongo('shiftRoaster'); // For attendance
-// const userDB = await connectExternalMongo('userDb'); // For users
+
+/* This section is providing an example of how to use the `connectExternalMongo` function to
+connect to a MongoDB database and how you can extend this functionality to connect to multiple
+databases. */
+
+// Actual usage: 
+const shiftRoasterDB = await connectExternalMongo('shiftRoaster'); 
 
 export { connectExternalMongo, shiftRoasterDB };
