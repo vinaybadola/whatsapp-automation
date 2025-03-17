@@ -33,31 +33,7 @@ const determinePunchType = async (LocalPunchTime,userDateTime, shiftStart, shift
   }
 
   if(isNightShift){
-    // check for latest attendance with or condition of if punch is after shift start time or before 2 hours
-
-    // calculate two hours prior from the shift start time 
-    const twoHoursPrior = new Date(shiftStart.getTime() - 2 * 60 * 60 * 1000);
-    console.log('twoHoursPrior', twoHoursPrior);
-    
-    const latestAttendance = await UserAttendance.findOne({
-      employeeCode : employeeCode
-    }).or([
-      {
-        userpunchInTime: { $gte: twoHoursPrior}
-      },
-      {
-        userpunchInTime : {$gte: shiftStart}
-      }
-    ]).sort({userPunchInTime : -1});
-
-    console.log('latestAttendance', latestAttendance);
-    
-    if(!latestAttendance){
-      return 'punch-in';
-    }
-    if(latestAttendance.hasPunchedIn){
-        return 'punch-out';
-    }
+      
   }
 
   // if user punched in after shiftEnd, it's a punch-out

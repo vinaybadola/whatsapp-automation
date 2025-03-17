@@ -23,7 +23,6 @@ console.log('updatedata',updatedata)
 
 const processedData = await attendanceService.processRawData(updatedata)
 console.log('processedData',processedData)
-// Call the processAttendanceData method
 attendanceService.processShiftType(processedData)
   .then(results => {
     console.log('Test results:', results);
