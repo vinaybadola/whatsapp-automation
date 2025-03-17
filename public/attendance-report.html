@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Late Attendance Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        #chartContainer {
+            width: 100%;
+            max-width: 900px;
+            margin: auto;
+        }
+        canvas {
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Daily Late Attendance Report</h2>
+    <div id="chartContainer">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <script>
+        const lateEmployees = __DATA__;  // Injected from Node.js
+
+        const labels = lateEmployees.map(emp => emp.name);
+        const lateTimes = lateEmployees.map(emp => emp.lateBy);
+        const formattedLateTimes = lateEmployees.map(emp => emp.formattedLateBy);
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+        Chart.register(ChartDataLabels);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Late by (minutes)',
+                    data: lateTimes,
+                    backgroundColor: 'rgba(99, 102, 255, 0.7)'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: 'Employee Names' } },
+                    y: { title: { display: true, text: 'Late Time (Minutes)' } }
+                },
+                plugins: {
+                    legend: { display: true },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'top',
+                        color: 'black',
+                        font: { size: 12 },
+                        formatter: (value, context) => formattedLateTimes[context.dataIndex]
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,4 +1,8 @@
+import fs from "fs";
+import path from "path";
 import cron from "node-cron";
+import { fileURLToPath } from 'url';
+import puppeteer from "puppeteer";
 import UserAttendance from "../../src/attendance/models/user-attendance-model.js";
 import Defaulters from "../../src/attendance/models/user-defaulters-model.js";
 import LateAttendanceReport from "../../src/attendance/models/late-attendance-report-model.js";
@@ -6,28 +10,11 @@ import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import connectDB from "../../config/database.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 dotenv.config();
-
 await connectDB();
-
-
-const runFetchLateAttendanceReportJob = async () => {
-    cron.schedule("26 13 * * *", async () => {
-        console.log("Running late attendance report job...");
-        try {
-            const lateEmployees = await fetchLateEmployees();
-
-            const chartUrl = lateEmployees.length ? generateGraph(lateEmployees) : null;
-
-            await saveReport(lateEmployees, chartUrl);
-            await sendLateReportEmail(lateEmployees, chartUrl);
-
-            console.log("Late attendance report job completed.");
-        } catch (error) {
-            console.error("Error running late attendance report job:", error);
-        }
-    });
-};
 
 const fetchLateEmployees = async () => {
     const today = new Date();
@@ -38,69 +25,77 @@ const fetchLateEmployees = async () => {
     return await Defaulters.find({
         isLate: true,
         date: { $gte: today, $lt: endOfDay }
-    }).populate({
-        path: 'userAttendanceId',
-        select: 'employeeName'
-    }).then((data) => data.map((employee) => ({
+    }).populate({ path: "userAttendanceId", select: "employeeName" })
+    .then((data) => data.map((employee) => ({
         name: employee.userAttendanceId?.employeeName || "Unknown",
-        lateBy: employee.lateByTime,
+        lateByForHtml: employee.lateByTime,
         employeeCode: employee.employeeCode,
-        date: employee.date.toISOString().split("T")[0]
+        lateBy: extractMinutes(employee.lateByTime),
+        date: new Date(employee.date).toISOString().split("T")[0],
+        formattedLateBy: formatTime(extractMinutes(employee.lateByTime))
     })));
 };
 
-const saveReport = async (lateEmployees, chartUrl) => {
-    await LateAttendanceReport.create({
-        chartUrl,
-        lateEmployeesCount: lateEmployees.length,
-        lateEmployees,
-        date: new Date()
-    });
+const extractMinutes = (timeString) => {
+    const match = timeString.match(/(\d+)\s*hours?\s*(\d*)\s*minutes?/);
+    if (!match) return 0;
+    const hours = parseInt(match[1]) || 0;
+    const minutes = parseInt(match[2]) || 0;
+    return (hours * 60) + minutes;
 };
 
-const generateGraph = (lateEmployees) => {
-    const labels = lateEmployees.map(emp => emp.name);
-    const lateTimes = lateEmployees.map(emp => extractMinutes(emp.lateBy));
-
-    const chartConfig = {
-        type: "bar",
-        data: {
-            labels,
-            datasets: [{
-                label: "Late by (minutes)",
-                data: lateTimes,
-                backgroundColor: "rgba(99, 102, 255, 0.7)"
-            }]
-        },
-        options: {
-            scales: {
-                x: { title: { display: true, text: "Employee Names", font: { size: 14 } }, ticks: { font: { size: 12 } } },
-                y: { title: { display: true, text: "Late Time (Minutes)", font: { size: 14 } }, ticks: { stepSize: 5, font: { size: 12 } } }
-            },
-            plugins: { legend: { display: true, position: "top" } }
-        }
-    };
-
-    return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
+const formatTime = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours} hr ${mins} min` : `${mins} min`;
 };
 
-const sendLateReportEmail = async (lateEmployees, chartUrl) => {
+const generateChartImage = async (lateEmployees) => {
+    const templatePath = path.join(__dirname, "../../public/attendance-report.html");
+    let templateHtml = fs.readFileSync(templatePath, "utf8");
+
+    templateHtml = templateHtml.replace("__DATA__", JSON.stringify(lateEmployees));
+
+    const timestamp = Date.now();
+    const outputPath = path.join(__dirname, "../../uploads/reports", `attendance_${timestamp}.png`);
+    const dbPath = path.join("uploads/reports", `attendance_${timestamp}.png`);
+
+    // ✅ Launch Puppeteer & Capture Screenshot
+    const browser = await puppeteer.launch( {executablePath: "/usr/bin/google-chrome",  headless: true });
+    const page = await browser.newPage();
+    await page.setContent(templateHtml, { waitUntil: "networkidle2" });
+    await page.screenshot({ path: outputPath });
+
+    await browser.close();
+    console.log("✅ Chart image saved:", outputPath);
+
+    return outputPath;
+};
+
+const sendLateReportEmail = async (imagePath, lateEmployees) => {
     const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: process.env.ADMIN_EMAIL,
-            pass: process.env.ADMIN_EMAIL_PASSWORD,
-        }
+        host:process.env.SMTP_HOST,
+        auth: { user: process.env.ADMIN_EMAIL, pass: process.env.ADMIN_EMAIL_PASSWORD }
     });
 
-    let emailHtml;
-    let subject;
+    try{
+        await LateAttendanceReport.create({
+            chartUrl: imagePath,
+            lateEmployeesCount: lateEmployees.length,
+            lateEmployees: lateEmployees,
+            date: new Date().toISOString().split("T")[0]
+        });
+    }
+    catch(error){
+        console.log("Error in updating late report collection ", error);
+    }
 
-    if (lateEmployees.length) {
-        subject = "Daily Late Attendance Report";
-        emailHtml = `
-            <h2>Daily Late Attendance Report</h2>
-            <p>Total Late Employees: <b>${lateEmployees.length}</b></p>
+    const emailHtml = `
+        <h2>Daily Late Attendance Report</h2>
+        <p>See the latest attendance report below:</p>
+        <br>
+        <img src="cid:chartImage" alt="Late Employees Graph" width="600"/>
+        <h1>Total Late Employees: <b>${lateEmployees.length}</b></h1>
             <table border="1" cellspacing="0" cellpadding="5" width="100%">
                 <tr>
                     <th>Name</th>
@@ -112,45 +107,53 @@ const sendLateReportEmail = async (lateEmployees, chartUrl) => {
                     <tr>
                         <td>${emp.name}</td>
                         <td>${emp.employeeCode}</td>
-                        <td>${emp.lateBy}</td>
+                        <td>${emp.lateByForHtml}</td>
                         <td>${emp.date}</td>
                     </tr>
                 `).join("")}
             </table>
-            <br>
-            <img src="${chartUrl}" alt="Late Employees Graph" width="600"/>
-        `;
-    } else {
-        subject = "No Late Employees Today 🎉";
-        emailHtml = `
-            <h2>No Late Attendance Today</h2>
-            <p>Great news! No employees were late today.</p>
-            <p>Thank you for your attention.</p>
-        `;
-    }
+        <br>
+    `;
 
     try {
         await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+            from: process.env.ADMIN_EMAIL,
             to: process.env.MANAGEMENT_EMAIL,
-            subject: subject,
+            subject: "Late Attendance Report for Today 🕒",
             html: emailHtml,
+            attachments: [{
+                filename: "attendance-report.png",
+                path: imagePath,
+                cid: "chartImage" 
+            }]
         });
 
-        console.log(`📩 Email sent: ${subject}`);
+        console.log("📩 Late attendance report email sent!");
     } catch (error) {
         console.error("❌ Error sending email:", error);
     }
 };
 
-const extractMinutes = (timeString) => {
-    const match = timeString.match(/(\d+)\s*hours?\s*(\d*)\s*minutes?/);
-    if (!match) return 0;
+const runFetchLateAttendanceReportJob = async () => {
+    console.log("🚀 Running late attendance report job...");
+    // cron.schedule("00 20 * * *", async () => {
+    try {
+        const lateEmployees = await fetchLateEmployees();
+        if (!lateEmployees.length) {
+            console.log(" No late employees today!");
+            return;
+        }
+        const imagePath = await generateChartImage(lateEmployees);
+        await sendLateReportEmail(imagePath, lateEmployees);
 
-    const hours = parseInt(match[1]) || 0;
-    const minutes = parseInt(match[2]) || 0;
-
-    return (hours * 60) + minutes;
+        console.log("Late attendance report job completed.");
+    } catch (error) {
+        console.error("Error running job:", error);
+    }
+    //});
+    
 };
 
-export {runFetchLateAttendanceReportJob};
+runFetchLateAttendanceReportJob();
+
+export { runFetchLateAttendanceReportJob };
