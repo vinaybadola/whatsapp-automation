@@ -45,3 +45,5 @@ export const allowedMethods = ["GET", "POST", "PUT", "DELETE", "PATCH"];
 export const allowedCredentials = true;
 export const allowedHeaders = ["Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"];
 export const allowedExposedHeaders = ["Authorization"];
+
+export const puppeterBrowserPath=process.env.PUPPETER_BROWSER_PATH;

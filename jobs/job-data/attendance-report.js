@@ -9,6 +9,7 @@ import LateAttendanceReport from "../../src/attendance/models/late-attendance-re
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import connectDB from "../../config/database.js";
+import {puppeterBrowserPath} from "../../config/envConfig.js"
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,7 +62,7 @@ const generateChartImage = async (lateEmployees) => {
     const dbPath = path.join("uploads/reports", `attendance_${timestamp}.png`);
 
     // ✅ Launch Puppeteer & Capture Screenshot
-    const browser = await puppeteer.launch( {executablePath: "/usr/bin/google-chrome",  headless: true });
+    const browser = await puppeteer.launch( {executablePath: puppeterBrowserPath,  headless: true });
     const page = await browser.newPage();
     await page.setContent(templateHtml, { waitUntil: "networkidle2" });
     await page.screenshot({ path: outputPath });
