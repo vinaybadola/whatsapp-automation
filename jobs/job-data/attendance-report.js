@@ -142,7 +142,7 @@ const sendLateReportEmail = async (imagePath, lateEmployees) => {
 
 const runFetchLateAttendanceReportJob = async () => {
     console.log("🚀 Running late attendance report job...");
-    // cron.schedule("00 20 * * *", async () => {
+    cron.schedule("00 20 * * *", async () => {
     try {
         const lateEmployees = await fetchLateEmployees();
         if (!lateEmployees.length) {
@@ -150,13 +150,13 @@ const runFetchLateAttendanceReportJob = async () => {
             return;
         }
         const imagePath = await generateChartImage(lateEmployees);
-        // await sendLateReportEmail(imagePath, lateEmployees);
+        await sendLateReportEmail(imagePath, lateEmployees);
 
         console.log("Late attendance report job completed.");
     } catch (error) {
         console.error("Error running job:", error);
     }
-    // });
+    });
     
 };
 
