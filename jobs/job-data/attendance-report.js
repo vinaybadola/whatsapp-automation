@@ -61,8 +61,13 @@ const generateChartImage = async (lateEmployees) => {
     const outputPath = path.join(__dirname, "../../uploads/reports", `attendance_${timestamp}.png`);
     const dbPath = path.join("uploads/reports", `attendance_${timestamp}.png`);
 
-    // ✅ Launch Puppeteer & Capture Screenshot
-    const browser = await puppeteer.launch( {executablePath: puppeterBrowserPath,  headless: true });
+    const browser = await puppeteer.launch( {executablePath: puppeterBrowserPath,  headless: true,  args: [
+        "--no-sandbox", 
+        "--disable-setuid-sandbox", 
+        "--disable-gpu", 
+        "--single-process", 
+        "--no-zygote"
+    ] });
     const page = await browser.newPage();
     await page.setContent(templateHtml, { waitUntil: "networkidle2" });
     await page.screenshot({ path: outputPath });
