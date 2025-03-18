@@ -14,15 +14,15 @@ export default class UserAttendanceController {
      */
     getUserAttendanceData = async (req, res) => {
         try {
-            const { employeeCode, filterType = "day", startDate, endDate, id } = req.query;
+            const { employeeCode, filterType = "day", startDate, endDate } = req.query;
 
             if (!employeeCode) {
                 return errorResponseHandler("Employee code is required", 400, res);
             }
 
             let filter = { employeeCode };
-
             const today = new Date();
+
             switch (filterType) {
                 case "day":
                     filter.userpunchInTime = {
@@ -30,55 +30,81 @@ export default class UserAttendanceController {
                         $lt: new Date(today.setHours(23, 59, 59, 999))
                     };
                     break;
-                case "week":
+
+                case "date": // ✅ Fixed `date` issue
+                    if (!startDate) {
+                        return errorResponseHandler("Start date is required for date filter", 400, res);
+                    }
+                    const specificDate = new Date(startDate);
+                    filter.userpunchInTime = {
+                        $gte: new Date(specificDate.setHours(0, 0, 0, 0)),
+                        $lt: new Date(specificDate.setHours(23, 59, 59, 999))
+                    };
+                    break;
+
+                case "week": // ✅ Fixed week calculation
                     const startOfWeek = new Date(today);
                     startOfWeek.setDate(today.getDate() - today.getDay());
-                    const endOfWeek = new Date(today);
+
+                    const endOfWeek = new Date(startOfWeek);
+                    endOfWeek.setDate(startOfWeek.getDate() + 6);
                     endOfWeek.setHours(23, 59, 59, 999);
+
                     filter.userpunchInTime = { $gte: startOfWeek, $lt: endOfWeek };
                     break;
+
                 case "month":
                     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
                     const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                    endOfMonth.setHours(23, 59, 59, 999);
+
                     filter.userpunchInTime = { $gte: startOfMonth, $lt: endOfMonth };
                     break;
+
                 case "year":
                     const startOfYear = new Date(today.getFullYear(), 0, 1);
                     const endOfYear = new Date(today.getFullYear(), 11, 31);
+                    endOfYear.setHours(23, 59, 59, 999);
+
                     filter.userpunchInTime = { $gte: startOfYear, $lt: endOfYear };
                     break;
+
                 case "custom":
                     if (!startDate || !endDate) {
                         return errorResponseHandler("Start and End dates are required for custom range", 400, res);
                     }
-                    const startOfDay = new Date(startDate);
-                    startOfDay.setHours(0, 0, 0, 0); 
-                  
-                    const endOfDay = new Date(endDate);
-                    endOfDay.setHours(23, 59, 59, 999);
-                  
+
+                    const startOfDay = new Date(new Date(startDate).toISOString().split("T")[0] + "T00:00:00.000Z");
+                    const endOfDay = new Date(new Date(endDate).toISOString().split("T")[0] + "T23:59:59.999Z");
+
                     filter.$or = [
-                      { userpunchInTime: { $gte: startOfDay.toISOString(), $lt: endOfDay.toISOString() } },
-                      { userPunchOutTime: { $gte: startOfDay, $lt: endOfDay } }
+                        { userpunchInTime: { $gte: startOfDay, $lt: endOfDay } },
+                        { userPunchOutTime: { $gte: startOfDay, $lt: endOfDay } }
                     ];
-                    break;           
+                    break;
+
+
+                case "last7days":
+                    const sevenDaysAgo = new Date(today);
+                    sevenDaysAgo.setDate(today.getDate() - 7);
+                    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+                    const todayEnd = new Date();
+                    todayEnd.setHours(23, 59, 59, 999);
+
+                    filter.userpunchInTime = { $gte: sevenDaysAgo, $lt: todayEnd };
+                    break;
+
                 default:
-                return errorResponseHandler("Invalid filter type", 400, res);
+                    return errorResponseHandler("Invalid filter type", 400, res);
             }
 
-            if(id){
-                filter._id = id;
-            }
-            const stats = await this.userAttendanceDataService.getUserStats(employeeCode, filterType, startDate, endDate);
             const attendanceData = await UserAttendance.find(filter).sort({ updatedAt: -1 });
-            return res.status(200).json({ success: true, data: attendanceData, stats });
+            return res.status(200).json({ success: true, data: attendanceData });
 
         } catch (error) {
             console.error("Error fetching attendance data:", error);
-            if (error instanceof Error) {
-                return errorResponseHandler(error.message, 400, res);
-            }
-            return errorResponseHandler("Internal Server Error", 500, res);
+            return errorResponseHandler(error.message || "Internal Server Error", 500, res);
         }
     };
 
@@ -280,18 +306,18 @@ export default class UserAttendanceController {
     getDashboardData = async (req, res) => {
         try {
             const { shiftTiming = "10:00-19:00", page = 0, date, filter, empCode } = req.query;
-    
+
             let targetDate = new Date();
             if (date) {
                 targetDate = new Date(date);
             }
             const formattedDate = targetDate.toISOString().split("T")[0];
-    
+
             const shiftTimings = await this.getTotalEmployeeCountAccordingtoShift(formattedDate);
             const getOnlyShiftTimings = shiftTimings.map((shift) => shift.shiftTime);
             const shift = shiftTimings.find((shift) => shift.shiftTime === shiftTiming);
             const totalEmployees = shift ? shift.employees.length : 0;
-    
+
             // Create a query filter based on request
             let attendanceFilter = {
                 userpunchInTime: {
@@ -299,20 +325,20 @@ export default class UserAttendanceController {
                     $lt: new Date(formattedDate + "T23:59:59.999Z")
                 }
             };
-    
+
             if (empCode) {
                 attendanceFilter.employeeCode = empCode; // Search by employee code
             }
-    
+
             const presentEmployees = await UserAttendance.find(attendanceFilter).sort({ updatedAt: -1 });
-    
+
             let presentEmployeesCount = presentEmployees.length;
             let absentEmployeesCount = totalEmployees - presentEmployeesCount;
-    
+
             let onTimeEmployeesCount = 0;
             let lateEmployeesCount = 0;
             let userData = [];
-    
+
             for (const employee of presentEmployees) {
                 const employeeData = {
                     empCode: employee.employeeCode,
@@ -320,7 +346,7 @@ export default class UserAttendanceController {
                     userPunchInTime: employee.userpunchInTime,
                     userPunchOutTime: employee.userPunchOutTime
                 };
-    
+
                 if (employee.isOnTime) {
                     employeeData.onTime = true;
                     onTimeEmployeesCount++;
@@ -328,10 +354,10 @@ export default class UserAttendanceController {
                     employeeData.isLate = true;
                     lateEmployeesCount++;
                 }
-    
+
                 userData.push(employeeData);
             }
-    
+
             // If filter is applied, return only that category
             if (filter === "late") {
                 userData = userData.filter(emp => emp.isLate);
@@ -340,13 +366,13 @@ export default class UserAttendanceController {
             } else if (filter === "absent") {
                 userData = []; // Since absent employees are not in attendance records
             }
-    
+
             // Graph data remains the same
             let startDate = new Date();
             startDate.setDate(startDate.getDate() - page * 10);
             let endDate = new Date(startDate);
             endDate.setDate(endDate.getDate() - 9);
-    
+
             const last10DaysData = await UserAttendance.aggregate([
                 {
                     $match: {
@@ -366,7 +392,7 @@ export default class UserAttendanceController {
                 },
                 { $sort: { _id: 1 } }
             ]);
-    
+
             return res.status(200).json({
                 success: true,
                 totalEmployees,
@@ -383,7 +409,7 @@ export default class UserAttendanceController {
                     prevPage: parseInt(page) > 0 ? parseInt(page) - 1 : null
                 }
             });
-    
+
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
             if (error instanceof Error) {
@@ -391,7 +417,7 @@ export default class UserAttendanceController {
             }
             return errorResponseHandler("Internal Server Error", 500, res);
         }
-    };    
+    };
 
     getTotalEmployeeCountAccordingtoShift = async (date) => {
         try {
@@ -435,8 +461,8 @@ export default class UserAttendanceController {
     }
 
     getUserAttendanceById = async (req, res) => {
-        try{
-            const { id , filterType =  "week"} = req.params;
+        try {
+            const { id, filterType = "week" } = req.params;
             if (!id) {
                 return errorResponseHandler("Attendance ID is required", 400, res);
             }
@@ -444,13 +470,13 @@ export default class UserAttendanceController {
             if (!attendanceData) {
                 return errorResponseHandler("Attendance record not found", 404, res);
             }
-            
+
             const employeeCode = attendanceData.employeeCode;
-            const stats = await this.userAttendanceDataService.getUserStats(employeeCode,filterType);
-            
+            const stats = await this.userAttendanceDataService.getUserStats(employeeCode, filterType);
+
             return res.status(200).json({ success: true, data: attendanceData, stats });
         }
-        catch(error){
+        catch (error) {
             console.error("Error fetching attendance data:", error);
             if (error instanceof Error) {
                 return errorResponseHandler(error.message, 400, res);
@@ -459,21 +485,21 @@ export default class UserAttendanceController {
         }
     }
 
-    getUserAttendanceHistory = async(req,res) =>{
-        try{
-            const {employeeCode} = req.params;
+    getUserAttendanceHistory = async (req, res) => {
+        try {
+            const { employeeCode } = req.params;
             const { page, limit, skip } = paginate(req);
 
             if (!employeeCode) {
                 return errorResponseHandler("Employee code is required", 400, res);
             }
-            const historyData = await UserAttendance.find({employeeCode}).skip(skip).limit(limit).sort({ updatedAt: -1 });
-            const total = await UserAttendance.countDocuments({employeeCode});
+            const historyData = await UserAttendance.find({ employeeCode }).skip(skip).limit(limit).sort({ updatedAt: -1 });
+            const total = await UserAttendance.countDocuments({ employeeCode });
             const pagination = paginateReturn(page, limit, total, historyData.length);
 
             return res.status(200).json({ success: true, data: historyData, pagination });
         }
-        catch(error){
+        catch (error) {
             console.error("Error fetching history data:", error);
             if (error instanceof Error) {
                 return errorResponseHandler(error.message, 400, res);

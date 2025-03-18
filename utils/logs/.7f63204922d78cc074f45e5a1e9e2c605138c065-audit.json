@@ -6,11 +6,6 @@
     "auditLog": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/.7f63204922d78cc074f45e5a1e9e2c605138c065-audit.json",
     "files": [
         {
-            "date": 1741070601363,
-            "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-03-04-daily.log",
-            "hash": "c6e2fc1ec914d82aeb2bb853e2b478a061e41889fb94681c9c2e8bf9c4525275"
-        },
-        {
             "date": 1741159030450,
             "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-03-05-daily.log",
             "hash": "b935bd47b9a0c2e17def16f9ea438f8aec83a548a055b6d2bfea8a7ce08b6482"
@@ -54,6 +49,11 @@
             "date": 1742197638516,
             "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-03-17-daily.log",
             "hash": "c849d9bce2246ec3dac3b9fcbe7a06d79a7e6493cf16cee1ea6a0522921b5c02"
+        },
+        {
+            "date": 1742282940105,
+            "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-03-18-daily.log",
+            "hash": "0b12b8e015437a28c682d52e895d75b46fc124c4e1c3d4aac21214d0ebc3e5e0"
         }
     ],
     "hashType": "sha256"
