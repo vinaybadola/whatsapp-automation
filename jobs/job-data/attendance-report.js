@@ -145,13 +145,13 @@ const runFetchLateAttendanceReportJob = async () => {
             return;
         }
         const imagePath = await generateChartImage(lateEmployees);
-        await sendLateReportEmail(imagePath, lateEmployees);
+        // await sendLateReportEmail(imagePath, lateEmployees);
 
         console.log("Late attendance report job completed.");
     } catch (error) {
         console.error("Error running job:", error);
     }
-    //});
+    // });
     
 };
 
