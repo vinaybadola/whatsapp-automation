@@ -75,6 +75,12 @@ export default class ExternalController{
             if(!data || !source || !type){
                 throw new Error('Missing required fields');
             }
+
+            // find Type in the templates first before proceeding 
+            const getType = await Template.findOne({templateType : type});
+            if(!getType){
+                return res.status(400).json({success : false , message : "Invalid Template Type!"});
+            }
           
             const io = req.app.get('socketio');
 
