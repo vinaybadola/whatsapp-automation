@@ -61,21 +61,20 @@ const determinePunchType = async (LocalPunchTime,userDateTime, shiftStart, shift
 
 const checkPunchOutValidity = (userPunchOut, shiftEnd) => {
   const isLeavingEarly = userPunchOut < shiftEnd;
-  const isLate = userPunchOut > shiftEnd;
   let earlyBy = isLeavingEarly ? Math.abs(shiftEnd - userPunchOut) / (60 * 1000) : 0;
 
   const hours = Math.floor(earlyBy / 60);
   const minutes = (earlyBy % 60).toFixed(0);
   earlyBy = `${hours} hours ${minutes} minutes`;
 
-  return { isLeavingEarly, isLate, earlyBy };
+  return { isLeavingEarly,earlyBy };
 };
 
 const calculateAllowedWindow = (shiftStart) => ({
   allowedPunchInStart: new Date(shiftStart.getTime() + 30 * 60 * 1000),
 });
 
-const checkPunchInValidity = (userPunchIn, shiftStart, gracePeriod, allowedPunchInEnd) => {
+const checkPunchInValidity = (userPunchIn, shiftStart, allowedPunchInEnd) => {
 
   const isWithinWindow = userPunchIn >= shiftStart && userPunchIn <= allowedPunchInEnd;
 

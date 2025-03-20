@@ -58,17 +58,6 @@ export default class AttendanceService {
             // prior from the shift start time and after the shift start time 
             const twoHoursPrior = new Date(data.shiftStartTime.getTime() - 2 * 60 * 60 * 1000);
 
-            // let existingAttendance = await UserAttendance.findOne({
-            //     employeeCode : data.employeeCode
-            // }).or([
-            //     {
-            //         userpunchInTime: { $gte: twoHoursPrior}
-            //     },
-            //     {
-            //         userpunchInTime : {$gte: data.shiftStartTime}
-            //     }
-            // ]).sort({userPunchInTime : -1});
-
             let existingAttendance = await UserAttendance.findOne({
                 employeeCode : data.employeeCode
             }).or([
@@ -254,8 +243,6 @@ export default class AttendanceService {
                 time: data.punchTime,
                 isHalfDayToday
             });
-
-
         }
         catch(error){
             console.log(`An error occurred while processing attendance data for night Employees : ${error.message}`);
