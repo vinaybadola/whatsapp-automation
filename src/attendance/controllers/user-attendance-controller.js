@@ -4,7 +4,7 @@ import { paginate, paginateReturn } from '../../../helpers/pagination.js';
 import { errorResponseHandler } from '../../../helpers/data-validation.js';
 import UserAttendanceDataService from "../services/user-attendance-data-service.js";
 import { shiftRoasterDB } from "../../../config/externalDatabase.js";
-
+import {checkPunchInValidity} from "../../../helpers/attendance-helper.js"
 export default class UserAttendanceController {
     constructor() {
         this.userAttendanceDataService = new UserAttendanceDataService();
@@ -226,13 +226,13 @@ export default class UserAttendanceController {
      */
     addUserAttendanceData = async (req, res) => {
         try {
-            const {
+            let {
+                name,
                 employeeCode,
                 actualPunchInTime,
                 userpunchInTime,
                 actualPunchOutTime,
                 userPunchOutTime,
-                totalHours,
                 deviceId
             } = req.body;
 
@@ -240,17 +240,46 @@ export default class UserAttendanceController {
                 return errorResponseHandler("Employee code, punch in/out times and device ID are required", 400, res);
             }
 
+            const ISODateChanger = (date) =>{
+                return new Date(date).toISOString().replace("Z", "+00.00");
+            }
+
+            //change the userPunchInTime and userPunchOutTime to this format "2025-03-03T17:01:43.000+00:00"
+            userpunchInTime = ISODateChanger(userpunchInTime);
+            userPunchOutTime = ISODateChanger(userPunchOutTime);
+            const attendanceData = await UserAttendance.findOne({ employeeCode, deviceId, userpunchInTime, userPunchOutTime });
+
+            if(attendanceData){
+                return errorResponseHandler("Attendance data already exists for this employee and device", 400, res);
+            }
+
+            // Calculate total hours ,isLate, isEarly, isAbsent, isHalfDay , isOnTime, isDayShift
+            const gracePeriod = 30;
+            const {totalHours, totalHoursString} = calculateTotalHours(userpunchInTime, userPunchOutTime);
+            const {isLate, isLateTime, isOnTime, isLeavingEarly, earlyBy} = isLateOrEarly(actualPunchInTime, userpunchInTime, actualPunchOutTime, userPunchOutTime, gracePeriod);
+
+            let isAbsent = false;
+            let isHalfDay = false;
+
+            if(totalHours < 4){
+                isAbsent = true;
+            }
+
+            if(totalHours > 4 && totalHours < 6){
+                isHalfDay = true;
+            }
+
             const newAttendance = new UserAttendance({
+                name : name,
                 employeeCode,
                 actualPunchInTime: new Date(actualPunchInTime),
                 userpunchInTime: new Date(userpunchInTime),
                 actualPunchOutTime: new Date(actualPunchOutTime),
                 userPunchOutTime: new Date(userPunchOutTime),
-                totalHours,
                 deviceId,
-                hasPunchedIn: true,
-                hasPunchedOut: true,
-                isValidPunch: true
+                hasPunchedIn: userpunchInTime ? true : false,
+                hasPunchedOut: userPunchOutTime ? true : false,
+                isValidPunch: (hasPunchedIn && hasPunchedOut) ? true : false
             });
 
             await newAttendance.save();
@@ -306,6 +335,7 @@ export default class UserAttendanceController {
     getDashboardData = async (req, res) => {
         try {
             const { shiftTiming = "10:00-19:00", page = 0, date, filter, empCode } = req.query;
+            console.log("Received Shift Timing:", shiftTiming);
 
             let targetDate = new Date();
             if (date) {
@@ -423,14 +453,15 @@ export default class UserAttendanceController {
         try {
             const shiftTimingCursor = await shiftRoasterDB.collection("shiftnames").find().toArray();
             const shiftTimings = [];
-
+    
             for (const shift of shiftTimingCursor) {
-                const formattedShiftTime = shift.shiftName.replace(/\s/g, "");
-
+                const formattedShiftTime = shift.shiftName.replace(/\s/g, ""); // Normalize format
+                console.log("Formatted Shift Time:", formattedShiftTime);
+    
                 const employees = await shiftRoasterDB.collection("shifttimings").aggregate([
                     {
                         $match: {
-                            shiftTime: new RegExp("^" + formattedShiftTime.replace(/-/g, " - ") + "$"),
+                            shiftTime: new RegExp(formattedShiftTime.replace(/-/g, "[- ]"), "i"), // Flexible regex
                             date: {
                                 $gte: new Date(date + "T00:00:00.000Z"),
                                 $lt: new Date(date + "T23:59:59.999Z")
@@ -445,20 +476,21 @@ export default class UserAttendanceController {
                         }
                     }
                 ]).toArray();
-
+    
                 shiftTimings.push({
                     shiftTime: shift.shiftName,
                     employees
                 });
-
+    
             }
-
+    
             return shiftTimings;
         } catch (error) {
             console.error("Error fetching shift timings:", error);
             throw error;
         }
-    }
+    };
+    
 
     getUserAttendanceById = async (req, res) => {
         try {

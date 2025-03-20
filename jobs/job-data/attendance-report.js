@@ -141,8 +141,8 @@ const sendLateReportEmail = async (imagePath, lateEmployees) => {
 };
 
 const runFetchLateAttendanceReportJob = async () => {
-    console.log("🚀 Running late attendance report job...");
     cron.schedule("00 20 * * *", async () => {
+    console.log("🚀 Running late attendance report job...");
     try {
         const lateEmployees = await fetchLateEmployees();
         if (!lateEmployees.length) {
@@ -159,7 +159,5 @@ const runFetchLateAttendanceReportJob = async () => {
     });
     
 };
-
-runFetchLateAttendanceReportJob();
 
 export { runFetchLateAttendanceReportJob };

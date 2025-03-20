@@ -12,13 +12,13 @@ export const userQueryValidation = [
     body('type')
         .notEmpty().withMessage('Type is required')
         .isString().withMessage('Type must be a string')
-        .isIn(['sales-query',
-            'website-inquiry',
-            'gtel-website-inquiry',
-            'wibro-website-query',
-            "pm2-service-down", 
-            "sales-ticket", 
-            "dev-testing", "noida-group-query"]).withMessage('Invalid type'),
+        // .isIn(['sales-query',
+        //     'website-inquiry',
+        //     'gtel-website-inquiry',
+        //     'wibro-website-query',
+        //     "pm2-service-down", 
+        //     "sales-ticket", 
+        //     "dev-testing", "noida-group-query"]).withMessage('Invalid type'),
 ];
 
 // sales-query = for third party whatsapp service (refrence sandeep shukla )
