@@ -304,7 +304,7 @@ export default class AttendanceService {
 
                 const gracePeriod = 30 * 60 * 1000;
                 const allowedPunchInEnd = new Date(data.shiftStartTime.getTime() + gracePeriod);
-                const { isWithinWindow, isLate, lateBy } = checkPunchInValidity(
+                const { isWithinWindow, lateBy } = checkPunchInValidity(
                     data.punchTime,
                     data.shiftStartTime,
                     gracePeriod,

@@ -1,10 +1,9 @@
 import UserAttendance from "../models/user-attendance-model.js";
-import Defaulters from "../models/user-defaulters-model.js";
 import { paginate, paginateReturn } from '../../../helpers/pagination.js';
 import { errorResponseHandler } from '../../../helpers/data-validation.js';
 import UserAttendanceDataService from "../services/user-attendance-data-service.js";
 import { shiftRoasterDB } from "../../../config/externalDatabase.js";
-import {checkPunchInValidity} from "../../../helpers/attendance-helper.js"
+import {ISODateChanger, validateDate, calculateTotalHours, calculateIsLateOrEarly, updateDefaulters} from "../../../helpers/attendance-updation-helper.js";
 export default class UserAttendanceController {
     constructor() {
         this.userAttendanceDataService = new UserAttendanceDataService();
@@ -107,45 +106,82 @@ export default class UserAttendanceController {
             return errorResponseHandler(error.message || "Internal Server Error", 500, res);
         }
     };
-
     /**
      * Update user attendance (Only allowed within last 5 days)
      */
     updateUserAttendanceData = async (req, res) => {
         try {
             const { id } = req.params;
-            if (!id) {
-                return errorResponseHandler("Attendance ID is required", 400, res);
-            }
-            const { userPunchInTime, userPunchOutTime } = req.body;
-
+            if (!id) return errorResponseHandler("Attendance ID is required", 400, res);
+    
+            let { userpunchInTime, userPunchOutTime } = req.body;
+    
             const record = await UserAttendance.findById(id);
-            if (!record) {
-                return errorResponseHandler("Attendance record not found", 404, res);
-            }
-
-            const fiveDaysAgo = new Date();
-            fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
-
-            if (record.userpunchInTime < fiveDaysAgo) {
+            if (!record) return errorResponseHandler("Attendance record not found", 404, res);
+    
+            const fifteenDaysAgo = new Date();
+            fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+    
+            if (new Date(record.userpunchInTime) < fifteenDaysAgo) {
                 return errorResponseHandler("Cannot update attendance older than 5 days", 403, res);
             }
-
-            if (userPunchInTime) record.userpunchInTime = new Date(userPunchInTime);
-            if (userPunchOutTime) record.userPunchOutTime = new Date(userPunchOutTime);
-
-            await record.save();
-            return res.status(200).json({ success: true, message: "Attendance updated successfully", data: record });
-
+    
+            let updatedFields = {};
+            if (userpunchInTime) updatedFields.userpunchInTime = ISODateChanger(validateDate(userpunchInTime));
+            if (userPunchOutTime) updatedFields.userPunchOutTime = ISODateChanger(validateDate(userPunchOutTime));
+    
+            // Recalculate Attendance Data
+            const { totalHours, totalHoursString } = calculateTotalHours(
+                updatedFields.userpunchInTime || record.userpunchInTime,
+                updatedFields.userPunchOutTime || record.userPunchOutTime
+            );
+    
+            const { isLate, isLateTime, isOnTime, isLeavingEarly, earlyBy } = calculateIsLateOrEarly(
+                record.actualPunchInTime, 
+                updatedFields.userpunchInTime || record.userpunchInTime, 
+                record.actualPunchOutTime, 
+                updatedFields.userPunchOutTime || record.userPunchOutTime
+            );
+    
+            Object.assign(updatedFields, { 
+                totalHours: totalHoursString, 
+                isLate, 
+                isLeavingEarly, 
+                isOnTime, 
+                isValidPunch: updatedFields.userpunchInTime !== updatedFields.userPunchOutTime,
+                isAbsent: totalHours < 4, 
+                isHalfDay: totalHours >= 4 && totalHours < 8
+            });
+    
+            const updatedRecord = await UserAttendance.findOneAndUpdate(
+                { _id: id },
+                { $set: updatedFields },
+                { new: true } 
+            );
+    
+            if (!updatedRecord) {
+                return errorResponseHandler("Failed to update attendance", 500, res);
+            }
+    
+            await updateDefaulters(
+                updatedRecord.employeeCode, 
+                updatedRecord.userpunchInTime, 
+                isLate, 
+                isLeavingEarly, 
+                updatedRecord.userpunchInTime, 
+                updatedRecord.userPunchOutTime, 
+                isLateTime, 
+                earlyBy, 
+                updatedRecord._id
+            );
+    
+            return res.status(200).json({ success: true, message: "Attendance updated successfully", data: updatedRecord });
+    
         } catch (error) {
             console.error("Error updating attendance:", error);
-            if (error instanceof Error) {
-                return errorResponseHandler(error.message, 400, res);
-            }
-            return errorResponseHandler("Internal Server Error", 500, res);
+            return errorResponseHandler(error.message || "Internal Server Error", 500, res);
         }
-    };
-
+    };    
     /**
      * Get all user attendance records (Paginated)
      */
@@ -220,99 +256,58 @@ export default class UserAttendanceController {
             return errorResponseHandler("Internal Server Error", 500, res);
         }
     };
-
     /**
      * Add a new user attendance record
      */
     addUserAttendanceData = async (req, res) => {
         try {
-            let {
-                name,
-                employeeCode,
-                actualPunchInTime,
-                userpunchInTime,
-                actualPunchOutTime,
-                userPunchOutTime,
-                deviceId
-            } = req.body;
-
+            let { name, employeeCode, actualPunchInTime, userpunchInTime, actualPunchOutTime, userPunchOutTime, deviceId, isNightShift, isDayShift } = req.body;
+    
             if (!employeeCode || !userpunchInTime || !userPunchOutTime || !deviceId) {
                 return errorResponseHandler("Employee code, punch in/out times and device ID are required", 400, res);
             }
-
-            const ISODateChanger = (date) =>{
-                return new Date(date).toISOString().replace("Z", "+00.00");
-            }
-
-            //change the userPunchInTime and userPunchOutTime to this format "2025-03-03T17:01:43.000+00:00"
-            userpunchInTime = ISODateChanger(userpunchInTime);
-            userPunchOutTime = ISODateChanger(userPunchOutTime);
-            const attendanceData = await UserAttendance.findOne({ employeeCode, deviceId, userpunchInTime, userPunchOutTime });
-
-            if(attendanceData){
-                return errorResponseHandler("Attendance data already exists for this employee and device", 400, res);
-            }
-
-            // Calculate total hours ,isLate, isEarly, isAbsent, isHalfDay , isOnTime, isDayShift
-            const gracePeriod = 30;
-            const {totalHours, totalHoursString} = calculateTotalHours(userpunchInTime, userPunchOutTime);
-            const {isLate, isLateTime, isOnTime, isLeavingEarly, earlyBy} = isLateOrEarly(actualPunchInTime, userpunchInTime, actualPunchOutTime, userPunchOutTime, gracePeriod);
-
-            let isAbsent = false;
-            let isHalfDay = false;
-
-            if(totalHours < 4){
-                isAbsent = true;
-            }
-
-            if(totalHours > 4 && totalHours < 6){
-                isHalfDay = true;
-            }
-
-            const newAttendance = new UserAttendance({
-                name : name,
+    
+            // Convert and validate dates
+            userpunchInTime = ISODateChanger(validateDate(userpunchInTime));
+            userPunchOutTime = ISODateChanger(validateDate(userPunchOutTime));
+    
+            // Check for duplicate attendance within ±5 minutes
+            const timeRangeMinutes = 5;
+            const userPunchDate = new Date(userpunchInTime);
+            const minTime = new Date(userPunchDate.getTime() - timeRangeMinutes * 60000);
+            const maxTime = new Date(userPunchDate.getTime() + timeRangeMinutes * 60000);
+    
+            const attendanceData = await UserAttendance.findOne({
                 employeeCode,
-                actualPunchInTime: new Date(actualPunchInTime),
-                userpunchInTime: new Date(userpunchInTime),
-                actualPunchOutTime: new Date(actualPunchOutTime),
-                userPunchOutTime: new Date(userPunchOutTime),
                 deviceId,
-                hasPunchedIn: userpunchInTime ? true : false,
-                hasPunchedOut: userPunchOutTime ? true : false,
-                isValidPunch: (hasPunchedIn && hasPunchedOut) ? true : false
+                userpunchInTime: { $gte: minTime, $lte: maxTime },
+                status : true
             });
-
+    
+            if (attendanceData) {
+                return errorResponseHandler("Attendance already exists within this time range, try adding 10 minutes more!", 400, res);
+            }
+    
+            // Recalculate attendance
+            const gracePeriod = 30;
+            const { totalHours, totalHoursString } = calculateTotalHours(userpunchInTime, userPunchOutTime);
+            const { isLate, isLateTime, isOnTime, isLeavingEarly, earlyBy } = calculateIsLateOrEarly(actualPunchInTime, userpunchInTime, actualPunchOutTime, userPunchOutTime, gracePeriod);
+    
+            const newAttendance = new UserAttendance({
+                name, employeeCode, actualPunchInTime, userpunchInTime, actualPunchOutTime, userPunchOutTime, deviceId,
+                hasPunchedIn: !!userpunchInTime, hasPunchedOut: !!userPunchOutTime, isValidPunch: userpunchInTime !== userPunchOutTime,
+                totalHours: totalHoursString, isLate, isLeavingEarly, isOnTime, isDayShift, isNightShift, isAbsent: totalHours < 4, isHalfDay: totalHours >= 4 && totalHours < 8
+            });
+    
             await newAttendance.save();
-
-            // Check if employee is late and update Defaulters list
-            const punchInThreshold = new Date(actualPunchInTime);
-            punchInThreshold.setMinutes(punchInThreshold.getMinutes() + 10);
-
-            if (new Date(userpunchInTime) > punchInThreshold) {
-                await Defaulters.updateOne(
-                    { employeeCode, date: new Date().setHours(0, 0, 0, 0) },
-                    {
-                        $set: {
-                            isLate: true,
-                            punchInTime: userpunchInTime,
-                            lateByTime: Math.floor((new Date(userpunchInTime) - punchInThreshold) / 60000) + " minutes"
-                        }
-                    },
-                    { upsert: true }
-                );
-            }
-
+            await updateDefaulters(employeeCode, userpunchInTime, isLate, isLeavingEarly, userpunchInTime, userPunchOutTime, isLateTime, earlyBy, newAttendance._id);
+    
             return res.status(201).json({ success: true, message: "Attendance added successfully", data: newAttendance });
-
+    
         } catch (error) {
-            console.error("Error adding attendance:", error);
-            if (error instanceof Error) {
-                return errorResponseHandler(error.message, 400, res);
-            }
-            return errorResponseHandler("Internal Server Error", 500, res);
+            return errorResponseHandler(error.message || "Internal Server Error", 500, res);
         }
     };
-
     /**
      * Get all shift timings with users in 
     */
@@ -330,7 +325,6 @@ export default class UserAttendanceController {
             return errorResponseHandler("Internal Server Error", 500, res);
         }
     };
-
 
     getDashboardData = async (req, res) => {
         try {
@@ -491,7 +485,6 @@ export default class UserAttendanceController {
         }
     };
     
-
     getUserAttendanceById = async (req, res) => {
         try {
             const { id, filterType = "week" } = req.params;
@@ -534,6 +527,29 @@ export default class UserAttendanceController {
         catch (error) {
             console.error("Error fetching history data:", error);
             if (error instanceof Error) {
+                return errorResponseHandler(error.message, 400, res);
+            }
+            return errorResponseHandler("Internal Server Error", 500, res);
+        }
+    }
+
+    softDeleteAttendance = async(req,res) =>{
+        try{
+            const { id } = req.params;
+            if(!id){
+                return errorResponseHandler("Attendance ID is required", 400, res);
+            }
+            const attendanceData = await UserAttendance.findById(id);
+            if(!attendanceData){
+                return errorResponseHandler("Attendance record not found", 404, res);
+            }
+            attendanceData.status = false;
+            await attendanceData.save();
+            return res.status(200).json({ success: true, message: "Attendance record deleted successfully " });
+        }
+        catch(error){
+            console.error("Error deleting attendance record:", error);
+            if(error instanceof Error){
                 return errorResponseHandler(error.message, 400, res);
             }
             return errorResponseHandler("Internal Server Error", 500, res);

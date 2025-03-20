@@ -22,6 +22,7 @@ const userAttendanceSchema = new Schema({
     reasonForNotSendingMessage : {type:String, default : null},
     isNightShift : {type:Boolean, default : false},
     isDayShift : {type:Boolean, default : false},
+    status : {type: Boolean , default : true},
 }, {timestamps: true});
 
 const UserAttendance = mongoose.model('User-attendance', userAttendanceSchema);
