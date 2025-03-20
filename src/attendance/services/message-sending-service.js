@@ -121,7 +121,7 @@ export default class MessageSendingService {
             else{
                 await connectServices.sendIndividualMessage(sessionId, "io", findUserId.userId, formattedPhoneNumber, messageContent, "message-processing", devicePhone, "attendance");
             }
-            TODO: await UserAttendance.updateOne({ _id: record._id }, { $set: { hasMessageSent: true } });
+            await UserAttendance.updateOne({ _id: record._id }, { $set: { hasMessageSent: true } });
             log.info(`Message has been queued to ${getUserData.name} with phone number ${formattedPhoneNumber}`);
             return "Job completed successfully";
         }
