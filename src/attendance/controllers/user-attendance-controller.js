@@ -13,7 +13,7 @@ export default class UserAttendanceController {
      */
     getUserAttendanceData = async (req, res) => {
         try {
-            const { employeeCode, filterType = "day", startDate, endDate } = req.query;
+            const { employeeCode, filterType = "day", startDate, endDate, status="true"} = req.query;
 
             if (!employeeCode) {
                 return errorResponseHandler("Employee code is required", 400, res);
@@ -95,7 +95,12 @@ export default class UserAttendanceController {
                     break;
 
                 default:
-                    return errorResponseHandler("Invalid filter type", 400, res);
+                return errorResponseHandler("Invalid filter type", 400, res);
+            }
+            if (status === "false") {
+                filter.status = false;
+            } else {
+                filter.status = true;
             }
 
             const attendanceData = await UserAttendance.find(filter).sort({ updatedAt: -1 });
@@ -107,7 +112,7 @@ export default class UserAttendanceController {
         }
     };
     /**
-     * Update user attendance (Only allowed within last 5 days)
+     * Update user attendance (Only allowed within last 15 days)
      */
     updateUserAttendanceData = async (req, res) => {
         try {
@@ -123,7 +128,7 @@ export default class UserAttendanceController {
             fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
     
             if (new Date(record.userpunchInTime) < fifteenDaysAgo) {
-                return errorResponseHandler("Cannot update attendance older than 5 days", 403, res);
+                return errorResponseHandler("Cannot update attendance older than 15 days", 403, res);
             }
     
             let updatedFields = {};
