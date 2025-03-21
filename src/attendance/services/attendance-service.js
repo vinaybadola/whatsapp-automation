@@ -614,7 +614,7 @@ export default class AttendanceService {
             
             if(!empCode){ return errorResponseHandler("EmpCode required", 400, res)}
 
-            const findEmployeeRawPunches = await RawAttendance.find({employeeId : empCode, dateTime : { $gte: startOfTheDay, $lt: endOfTheDay }})
+            const findEmployeeRawPunches = await RawAttendance.find({employeeId : empCode, dateTime : { $gte: startOfTheDay, $lt: endOfTheDay }}).sort({createdAt : "-1"});
             
             if(findEmployeeRawPunches.length < 1){
                 return errorResponseHandler("No Raw Punches find today!", 400, res);

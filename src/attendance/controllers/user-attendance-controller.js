@@ -4,6 +4,7 @@ import { errorResponseHandler } from '../../../helpers/data-validation.js';
 import UserAttendanceDataService from "../services/user-attendance-data-service.js";
 import { shiftRoasterDB } from "../../../config/externalDatabase.js";
 import {ISODateChanger, validateDate, calculateTotalHours, calculateIsLateOrEarly, updateDefaulters} from "../../../helpers/attendance-updation-helper.js";
+import eventHandler from "../../events/event-handler.js"
 export default class UserAttendanceController {
     constructor() {
         this.userAttendanceDataService = new UserAttendanceDataService();
@@ -119,7 +120,7 @@ export default class UserAttendanceController {
             const { id } = req.params;
             if (!id) return errorResponseHandler("Attendance ID is required", 400, res);
     
-            let { userpunchInTime, userPunchOutTime } = req.body;
+            let { userpunchInTime, userPunchOutTime, dataManipulatorEmployeeCode, userName } = req.body;
     
             const record = await UserAttendance.findById(id);
             if (!record) return errorResponseHandler("Attendance record not found", 404, res);
@@ -168,7 +169,7 @@ export default class UserAttendanceController {
                 return errorResponseHandler("Failed to update attendance", 500, res);
             }
     
-            await updateDefaulters(
+            const defaultersUpdatedData = await updateDefaulters(
                 updatedRecord.employeeCode, 
                 updatedRecord.userpunchInTime, 
                 isLate, 
@@ -178,7 +179,21 @@ export default class UserAttendanceController {
                 isLateTime, 
                 earlyBy, 
                 updatedRecord._id
-            );
+            ) || {message : "No Defaulter record Updated!"};
+
+            eventHandler.emit("logActivity", {
+                userName,
+                employeeCode:  dataManipulatorEmployeeCode,
+                action : "UPDATE",
+                entity : "Attendance",
+                affectedSchema : "User-Attendance And defaulters Schema",
+                entityId : id,
+                requestPayload : req.body,
+                changes : {updatedRecord ,defaultersUpdatedData},
+                activityMessage: `Attendance Updated for Employee : ${updatedRecord.employeeCode}`,
+                ipAddress: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+                userAgent: req.header('user-agent')
+            });
     
             return res.status(200).json({ success: true, message: "Attendance updated successfully", data: updatedRecord });
     
@@ -266,7 +281,7 @@ export default class UserAttendanceController {
      */
     addUserAttendanceData = async (req, res) => {
         try {
-            let { name, employeeCode, actualPunchInTime, userpunchInTime, actualPunchOutTime, userPunchOutTime, deviceId, isNightShift, isDayShift } = req.body;
+            let { name, employeeCode, actualPunchInTime, userpunchInTime, actualPunchOutTime, userPunchOutTime, deviceId, isNightShift, isDayShift, userName, dataManipulatorEmployeeCode } = req.body;
     
             if (!employeeCode || !userpunchInTime || !userPunchOutTime || !deviceId) {
                 return errorResponseHandler("Employee code, punch in/out times and device ID are required", 400, res);
@@ -299,14 +314,37 @@ export default class UserAttendanceController {
             const { isLate, isLateTime, isOnTime, isLeavingEarly, earlyBy } = calculateIsLateOrEarly(actualPunchInTime, userpunchInTime, actualPunchOutTime, userPunchOutTime, gracePeriod);
     
             const newAttendance = new UserAttendance({
-                name, employeeCode, actualPunchInTime, userpunchInTime, actualPunchOutTime, userPunchOutTime, deviceId,
+                employeeName: name, employeeCode, actualPunchInTime, userpunchInTime, actualPunchOutTime, userPunchOutTime, deviceId,
                 hasPunchedIn: !!userpunchInTime, hasPunchedOut: !!userPunchOutTime, isValidPunch: userpunchInTime !== userPunchOutTime,
                 totalHours: totalHoursString, isLate, isLeavingEarly, isOnTime, isDayShift, isNightShift, isAbsent: totalHours < 4, isHalfDay: totalHours >= 4 && totalHours < 8
             });
     
             await newAttendance.save();
-            await updateDefaulters(employeeCode, userpunchInTime, isLate, isLeavingEarly, userpunchInTime, userPunchOutTime, isLateTime, earlyBy, newAttendance._id);
-    
+            const defaultersUpdatedData = await updateDefaulters(employeeCode,
+                userpunchInTime, 
+                isLate, 
+                isLeavingEarly, 
+                userpunchInTime, 
+                userPunchOutTime, 
+                isLateTime,
+                earlyBy, 
+                newAttendance._id
+            ) || {message : "No Defaulter record Updated!"};
+            
+            eventHandler.emit("logActivity", {
+                userName,
+                employeeCode:  dataManipulatorEmployeeCode,
+                action : "CREATE",
+                entity : "Attendance",
+                affectedSchema : "User-Attendance And defaulters Schema",
+                entityId : newAttendance._id,
+                changes : {defaultersUpdatedData},
+                requestPayload : req.body,
+                activityMessage: `Attendance Added for Employee : ${employeeCode}`,
+                ipAddress: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+                userAgent: req.header('user-agent')
+            });
+
             return res.status(201).json({ success: true, message: "Attendance added successfully", data: newAttendance });
     
         } catch (error) {
@@ -333,7 +371,7 @@ export default class UserAttendanceController {
 
     getDashboardData = async (req, res) => {
         try {
-            const { shiftTiming = "10:00-19:00", page = 0, date, filter, empCode } = req.query;
+            const { shiftTiming = '10:00-19:00', page = 0, date, filter, empCode } = req.query;
             console.log("Received Shift Timing:", shiftTiming);
 
             let targetDate = new Date();
@@ -344,8 +382,10 @@ export default class UserAttendanceController {
 
             const shiftTimings = await this.getTotalEmployeeCountAccordingtoShift(formattedDate);
             const getOnlyShiftTimings = shiftTimings.map((shift) => shift.shiftTime);
+
             const shift = shiftTimings.find((shift) => shift.shiftTime === shiftTiming);
-            const totalEmployees = shift ? shift.employees.length : 0;
+            const employees = shift ? shift.employees : [];
+            const totalEmployees = employees.length;   
 
             // Create a query filter based on request
             let attendanceFilter = {
@@ -454,13 +494,12 @@ export default class UserAttendanceController {
             const shiftTimings = [];
     
             for (const shift of shiftTimingCursor) {
-                const formattedShiftTime = shift.shiftName.replace(/\s/g, ""); // Normalize format
-                console.log("Formatted Shift Time:", formattedShiftTime);
+                const formattedShiftTime = shift.shiftName.replace(/\s/g, "").replace(/-/g, " - ");
     
                 const employees = await shiftRoasterDB.collection("shifttimings").aggregate([
                     {
                         $match: {
-                            shiftTime: new RegExp(formattedShiftTime.replace(/-/g, "[- ]"), "i"), // Flexible regex
+                            shiftTime: new RegExp(`^${formattedShiftTime}$`, "i"),
                             date: {
                                 $gte: new Date(date + "T00:00:00.000Z"),
                                 $lt: new Date(date + "T23:59:59.999Z")
@@ -540,7 +579,7 @@ export default class UserAttendanceController {
 
     softDeleteAttendance = async(req,res) =>{
         try{
-            const { id } = req.params;
+            const { id,userName,dataManipulatorEmployeeCode } = req.params;
             if(!id){
                 return errorResponseHandler("Attendance ID is required", 400, res);
             }
@@ -550,6 +589,20 @@ export default class UserAttendanceController {
             }
             attendanceData.status = false;
             await attendanceData.save();
+
+            eventHandler.emit("logActivity", {
+                // userId : new mongoose.Types.ObjectId("random-id"), // TODO: Replace with actual user ID
+                userName,
+                employeeCode:  dataManipulatorEmployeeCode,
+                action : "DELETE",
+                entity : "Attendance",
+                affectedSchema : "User-Attendance",
+                entityId : id,
+                activityMessage: `Attendance Soft Deleted for Employee : ${attendanceData.employeeCode}`,
+                ipAddress: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+                userAgent: req.header('user-agent')
+            });
+
             return res.status(200).json({ success: true, message: "Attendance record deleted successfully " });
         }
         catch(error){
