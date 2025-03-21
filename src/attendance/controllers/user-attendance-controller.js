@@ -101,7 +101,7 @@ export default class UserAttendanceController {
             if (status === "false") {
                 filter.status = false;
             } else {
-                filter.status = true;
+                filter.$or = [{ status: true }, { status: { $exists: false } }];
             }
 
             const attendanceData = await UserAttendance.find(filter).sort({ updatedAt: -1 });
@@ -301,7 +301,10 @@ export default class UserAttendanceController {
                 employeeCode,
                 deviceId,
                 userpunchInTime: { $gte: minTime, $lte: maxTime },
-                status : true
+                $or: [
+                    { status: true },
+                    { status: { $exists: false } }
+                ]
             });
     
             if (attendanceData) {
