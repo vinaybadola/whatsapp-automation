@@ -5,8 +5,8 @@ import Defaulters from "../models/user-defaulters-model.js";
 import MessageSendingService from "./message-sending-service.js";
 import { fetchDataFromPast } from '../../../jobs/job-data/fetch-user-attendance.js';
 import RawAttendance from "../models/raw-attendance-model.js";
-import { v4 as uuidv4 } from 'uuid';
 import {log} from '../../../utils/logger.js';
+import {errorResponseHandler} from "../../../helpers/data-validation.js";
 export default class AttendanceService {
     constructor() {
         this.messageSendingService = new MessageSendingService();
@@ -304,7 +304,7 @@ export default class AttendanceService {
 
                 const gracePeriod = 30 * 60 * 1000;
                 const allowedPunchInEnd = new Date(data.shiftStartTime.getTime() + gracePeriod);
-                const { isWithinWindow, isLate, lateBy } = checkPunchInValidity(
+                const { isWithinWindow, lateBy } = checkPunchInValidity(
                     data.punchTime,
                     data.shiftStartTime,
                     gracePeriod,
@@ -598,6 +598,35 @@ export default class AttendanceService {
         catch(error){
             console.log(`An error occurred while processing raw attendance data: ${error.message}`);
             throw new Error(`An error occurred while processing raw attendance data: ${error.message}`);
+        }
+    }
+
+    getRawPunches = async(req,res)=>{
+        try{
+            const {empCode, date} = req.query;
+
+            const startOfTheDay = new Date(date).setUTCHours(0,0,0,0);
+            const endOfTheDay = new Date(date).setUTCHours(23,59,59,999);
+
+            if(isNaN(startOfTheDay)){
+                return errorResponseHandler("Invalid Date", 400, res);
+            }
+            
+            if(!empCode){ return errorResponseHandler("EmpCode required", 400, res)}
+
+            const findEmployeeRawPunches = await RawAttendance.find({employeeId : empCode, dateTime : { $gte: startOfTheDay, $lt: endOfTheDay }}).sort({createdAt : "-1"});
+            
+            if(findEmployeeRawPunches.length < 1){
+                return errorResponseHandler("No Raw Punches find today!", 400, res);
+            }
+            return res.status(200).json({success: true, data : findEmployeeRawPunches})
+        }
+        catch(error){
+            console.log('An error occurred while fetching raw attendance', error);
+            if(error instanceof Error){
+                return res.status(400).json({success:false,  message : "Validation Error" , error : error.message});
+            }
+            return res.status(500).json({success : false, message : "Internal Server Error",error : error.message})
         }
     }
 }

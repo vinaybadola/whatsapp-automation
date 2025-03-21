@@ -9,6 +9,9 @@ import runJobs from './jobs/index.js';
 import {allowedOrigins,allowedMethods,allowedCredentials,allowedHeaders,allowedExposedHeaders} from "./config/envConfig.js";
 import path from 'path';
 
+// EVENTS
+import "./src/events/activity-logger.js"
+
 // Import routes
 import authRoutes from './src/users/routes/auth-route.js';
 import userRoutes from './src/users/routes/user-route.js';
@@ -41,6 +44,7 @@ securityMiddleware(app);
 
 // Attach Socket.IO to the app
 app.set('socketio', io);
+app.set("trust proxy", true);
 
 io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);

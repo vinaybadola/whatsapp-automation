@@ -9,10 +9,13 @@ const rawAttendanceController = new RawAttendanceController();
 
 router.get('/employee', userAttendanceController.getUserAttendanceData);
 router.get('/', userAttendanceController.getAllUserAttendanceData);
-router.put('/update-attendance/:empCode', userAttendanceController.updateUserAttendanceData);
-// router.post('/add-attendance', userAttendanceController.addUserAttendanceData);
-router.get("/all-employee-shift", userAttendanceController.getAllEmployeeShiftData);
 
+router.put('/update-attendance/:id', userAttendanceController.updateUserAttendanceData);
+router.post('/add-attendance', userAttendanceController.addUserAttendanceData);
+router.patch("/soft-delete", userAttendanceController.softDeleteAttendance);
+
+
+router.get("/all-employee-shift", userAttendanceController.getAllEmployeeShiftData);
 router.get("/dashboard", userAttendanceController.getDashboardData);
 router.get("/id/:id", userAttendanceController.getUserAttendanceById);
 router.get("/history/:employeeCode", userAttendanceController.getUserAttendanceHistory);
