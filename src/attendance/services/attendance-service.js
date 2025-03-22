@@ -631,7 +631,7 @@ export default class AttendanceService {
 
     getRawPunches = async (req, res) => {
         try {
-            const { empCode, date = "" } = req.query;
+            const { empCode, date = new Date().toISOString().split('T')[0] } = req.query;
     
             if (!empCode) {
                 return errorResponseHandler("EmpCode required", 400, res);
@@ -670,12 +670,33 @@ export default class AttendanceService {
 
     getEmployeeActivity = async (req, res) => {
         const { employeeCode } = req.params;
+        const { date = new Date().toISOString().split('T')[0] } = req.query;
+    
         try {
             const { page, limit, skip } = paginate(req);
     
-            const totalDocuments = await EmployeeActivityLogs.countDocuments({ employeeCode });
+            if (!employeeCode) {
+                return errorResponseHandler("Employee code is required", 400, res);
+            }
     
-            const findEmployeeActivity = await EmployeeActivityLogs.find({ employeeCode })
+            const selectedDate = new Date(date);
+            if (isNaN(selectedDate.getTime())) {
+                return errorResponseHandler("Invalid Date", 400, res);
+            }
+    
+            // Setting Start & End of the Day for Date Filter
+            const startOfTheDay = new Date(selectedDate);
+            startOfTheDay.setUTCHours(0, 0, 0, 0);
+    
+            const endOfTheDay = new Date(selectedDate);
+            endOfTheDay.setUTCHours(23, 59, 59, 999);
+    
+            // Adding date filter
+            const filter = { employeeCode, punchTime: { $gte: startOfTheDay, $lt: endOfTheDay } };
+    
+            const totalDocuments = await EmployeeActivityLogs.countDocuments(filter);
+    
+            const findEmployeeActivity = await EmployeeActivityLogs.find(filter)
                 .skip(skip)
                 .limit(limit)
                 .sort({ createdAt: -1 });
@@ -683,12 +704,14 @@ export default class AttendanceService {
             const pagination = paginateReturn(page, limit, totalDocuments, findEmployeeActivity.length);
     
             return res.status(200).json({ success: true, data: findEmployeeActivity, pagination });
+    
         } catch (error) {
             console.log('An error occurred while fetching employee activity', error);
-            if (error instanceof Error) {
-                return errorResponseHandler("Validation Error", 400, res);
-            }
-            return errorResponseHandler("Internal Server Error", 500, res);
+            return res.status(error instanceof Error ? 400 : 500).json({
+                success: false,
+                message: error instanceof Error ? "Validation Error" : "Internal Server Error",
+                error: error.message
+            });
         }
-    };    
+    };
 }
