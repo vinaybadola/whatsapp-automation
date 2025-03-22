@@ -107,4 +107,5 @@ export {
   checkPunchOutValidity,
   calculateAllowedWindow,
   checkPunchInValidity,
+  checkExistingPunch
 };

@@ -23,6 +23,7 @@ const userAttendanceSchema = new Schema({
     isNightShift : {type:Boolean, default : false},
     isDayShift : {type:Boolean, default : false},
     status : {type: Boolean , default : true},
+    isShiftCompleted : {type: Boolean, default : false},
 }, {timestamps: true});
 
 const UserAttendance = mongoose.model('User-attendance', userAttendanceSchema);

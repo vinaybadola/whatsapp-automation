@@ -105,9 +105,9 @@ const runFetchUserAttendanceJob = () => {
       if(localEnvironment === "true"){
         console.log('Running fetch-user-attendance job in LOCAL environment');
         data = [
-          // {
+          //  {
           //   EmpCode: 'WIBRO0065',
-          //   DateTime: '2025-03-12T10:03:02.000Z',
+          //   DateTime: '2025-03-22T09:03:02.000Z',
           //   DeviceId: 'DELHI'
           // }
         ]

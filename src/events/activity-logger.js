@@ -9,4 +9,13 @@ eventHandler.on("logActivity", async (data) => {
     }
 });
 
+eventHandler.on('employeeActivity', async(data)=>{
+    try{
+        await LogService.logEmployeeActivity(data);
+    }
+    catch(error){
+        console.error("Error logging employee activity:", error);
+    }
+})
+
 export default eventHandler;

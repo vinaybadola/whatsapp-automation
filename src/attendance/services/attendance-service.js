@@ -1,12 +1,13 @@
 import { shiftRoasterDB } from "../../../config/externalDatabase.js";
 import UserAttendance from "../../attendance/models/user-attendance-model.js";
-import { determinePunchType, checkPunchOutValidity, checkPunchInValidity } from "../../../helpers/attendance-helper.js";
+import { determinePunchType, checkPunchOutValidity, checkPunchInValidity,checkExistingPunch } from "../../../helpers/attendance-helper.js";
 import Defaulters from "../models/user-defaulters-model.js";
 import MessageSendingService from "./message-sending-service.js";
 import { fetchDataFromPast } from '../../../jobs/job-data/fetch-user-attendance.js';
 import RawAttendance from "../models/raw-attendance-model.js";
 import {log} from '../../../utils/logger.js';
 import {errorResponseHandler} from "../../../helpers/data-validation.js";
+import eventHandler from "../../events/event-handler.js"
 export default class AttendanceService {
     constructor() {
         this.messageSendingService = new MessageSendingService();
@@ -266,15 +267,39 @@ export default class AttendanceService {
             const startOfToday = new Date(now.getTime());
             startOfToday.setUTCHours(0, 0, 0, 0);
 
-            const shiftDateStr = new Date(data.utcPunchTime).toISOString().split('T')[0];
+            const shiftDateStr = new Date(data.utcPunchTime).toISOString().split('T')[0]; // Shift start date without time 
             const shiftDateStart = new Date(shiftDateStr);
             const shiftDateEnd = new Date(shiftDateStr);
             shiftDateEnd.setDate(shiftDateEnd.getDate() + 1);
 
-            let existingAttendance = await UserAttendance.findOne({
-                employeeCode: data.employeeCode,
-                userpunchInTime: { $gte: shiftDateStart, $lt: shiftDateEnd }
-            });
+            const allowedPunchTime = new Date(data.shiftStartTime.getTime() - (2 * 60 * 60 * 1000)); 
+            const utcPunchTime = new Date(data.punchTime); 
+
+            if(utcPunchTime < allowedPunchTime){
+                eventHandler.emit("employeeActivity", {
+                    employeeCode: data.employeeCode,
+                    punchTime : data.punchTime,
+                    remarks : `Employee ${data.employeeCode} attempts to punch in 2 hour prior to their respective shift start time
+                    System will store this data in raw punches. Make sure to inform the employee about his punch`,
+                    deviceId : data.deviceId,
+                    action : "PUNCHOUT"    
+                });
+                return `Employee ${data.employeeCode} attempts to punch in at ${data.punchTime} , stored in Raw punches`;
+            }
+        
+            let existingAttendance = await checkExistingPunch(data.employeeCode, shiftDateStart, shiftDateEnd);
+            
+            if(existingAttendance?.isShiftCompleted){
+                eventHandler.emit("employeeActivity", {
+                    employeeCode: data.employeeCode,
+                    punchTime : data.punchTime,
+                    remarks : `Employee ${data.employeeCode} has already punched out for the day 
+                    So We'll store the record in raw punches and HR has to manually enter this record.`,
+                    deviceId : data.deviceId,
+                    action : "PUNCHOUT"    
+                });
+                return `Today's Attendance Already exist for employee and stored in employee activity logs  : ${data.employeeCode}`;
+            }
 
             console.log(`Punch type for employee :  ${data.employeeCode}: ${punchType}`);
 
@@ -353,12 +378,14 @@ export default class AttendanceService {
                         hasPunchedOut: true,
                         isNightShift: false,
                         isDayShift: true,
-                        isOnTime : false
+                        isOnTime : false,
+                        isShiftCompleted : true
                     });
                 }
                 else {
                     existingAttendance.userPunchOutTime = data.punchTime;
                     existingAttendance.hasPunchedOut = true;
+                    existingAttendance.isShiftCompleted = true;
 
                     let workedHours;
                     if (!existingAttendance.isValidPunch && !existingAttendance.hasPunchedIn) {
