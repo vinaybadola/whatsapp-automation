@@ -629,34 +629,44 @@ export default class AttendanceService {
         }
     }
 
-    getRawPunches = async(req,res)=>{
-        try{
-            const {empCode, date} = req.query;
-
-            const startOfTheDay = new Date(date).setUTCHours(0,0,0,0);
-            const endOfTheDay = new Date(date).setUTCHours(23,59,59,999);
-
-            if(isNaN(startOfTheDay)){
+    getRawPunches = async (req, res) => {
+        try {
+            const { empCode, date = "" } = req.query;
+    
+            if (!empCode) {
+                return errorResponseHandler("EmpCode required", 400, res);
+            }
+    
+            const selectedDate = date ? new Date(date) : new Date();
+            if (isNaN(selectedDate.getTime())) {
                 return errorResponseHandler("Invalid Date", 400, res);
             }
+    
+            const startOfTheDay = new Date(selectedDate);
+            startOfTheDay.setUTCHours(0, 0, 0, 0);
             
-            if(!empCode){ return errorResponseHandler("EmpCode required", 400, res)}
-
-            const findEmployeeRawPunches = await RawAttendance.find({employeeId : empCode, dateTime : { $gte: startOfTheDay, $lt: endOfTheDay }}).sort({createdAt : "-1"});
-            
-            if(findEmployeeRawPunches.length < 1){
-                return errorResponseHandler("No Raw Punches find today!", 400, res);
+            const endOfTheDay = new Date(selectedDate);
+            endOfTheDay.setUTCHours(23, 59, 59, 999);
+    
+            const findEmployeeRawPunches = await RawAttendance.find({
+                employeeId: empCode,
+                dateTime: { $gte: startOfTheDay, $lt: endOfTheDay }
+            }).sort({ createdAt: -1 });
+    
+            if (findEmployeeRawPunches.length < 1) {
+                return errorResponseHandler("No Raw Punches found today!", 400, res);
             }
-            return res.status(200).json({success: true, data : findEmployeeRawPunches})
+    
+            return res.status(200).json({ success: true, data: findEmployeeRawPunches });
+        } catch (error) {
+            console.log("An error occurred while fetching raw attendance", error);
+            return res.status(error instanceof Error ? 400 : 500).json({
+                success: false,
+                message: error instanceof Error ? "Validation Error" : "Internal Server Error",
+                error: error.message
+            });
         }
-        catch(error){
-            console.log('An error occurred while fetching raw attendance', error);
-            if(error instanceof Error){
-                return res.status(400).json({success:false,  message : "Validation Error" , error : error.message});
-            }
-            return res.status(500).json({success : false, message : "Internal Server Error",error : error.message})
-        }
-    }
+    };    
 
     getEmployeeActivity = async (req, res) => {
         const { employeeCode } = req.params;
