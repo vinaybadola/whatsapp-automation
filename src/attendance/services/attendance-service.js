@@ -7,7 +7,9 @@ import { fetchDataFromPast } from '../../../jobs/job-data/fetch-user-attendance.
 import RawAttendance from "../models/raw-attendance-model.js";
 import {log} from '../../../utils/logger.js';
 import {errorResponseHandler} from "../../../helpers/data-validation.js";
-import eventHandler from "../../events/event-handler.js"
+import eventHandler from "../../events/event-handler.js";
+import { paginate, paginateReturn } from '../../../helpers/pagination.js';
+import EmployeeActivityLogs from "../models/employee-activity-logs-model.js";
 export default class AttendanceService {
     constructor() {
         this.messageSendingService = new MessageSendingService();
@@ -279,8 +281,7 @@ export default class AttendanceService {
                 eventHandler.emit("employeeActivity", {
                     employeeCode: data.employeeCode,
                     punchTime : data.punchTime,
-                    remarks : `Employee ${data.employeeCode} attempts to punch in 2 hour prior to their respective shift start time
-                    System will store this data in raw punches. Make sure to inform the employee about his punch`,
+                    remarks : `Employee ${data.employeeCode} attempts to punch in 2 hour prior to their respective shift start time System will store this data in raw punches. Make sure to inform the employee about his punch`,
                     deviceId : data.deviceId,
                     action : "PUNCHOUT"    
                 });
@@ -656,4 +657,28 @@ export default class AttendanceService {
             return res.status(500).json({success : false, message : "Internal Server Error",error : error.message})
         }
     }
+
+    getEmployeeActivity = async (req, res) => {
+        const { employeeCode } = req.params;
+        try {
+            const { page, limit, skip } = paginate(req);
+    
+            const totalDocuments = await EmployeeActivityLogs.countDocuments({ employeeCode });
+    
+            const findEmployeeActivity = await EmployeeActivityLogs.find({ employeeCode })
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 });
+    
+            const pagination = paginateReturn(page, limit, totalDocuments, findEmployeeActivity.length);
+    
+            return res.status(200).json({ success: true, data: findEmployeeActivity, pagination });
+        } catch (error) {
+            console.log('An error occurred while fetching employee activity', error);
+            if (error instanceof Error) {
+                return errorResponseHandler("Validation Error", 400, res);
+            }
+            return errorResponseHandler("Internal Server Error", 500, res);
+        }
+    };    
 }
