@@ -1,24 +1,25 @@
 import { shiftRoasterDB } from "../../../config/externalDatabase.js";
 import UserAttendance from "../../attendance/models/user-attendance-model.js";
-import { determinePunchType, checkPunchOutValidity, checkPunchInValidity,checkExistingPunch } from "../../../helpers/attendance-helper.js";
+import { determinePunchType, checkPunchOutValidity, checkPunchInValidity, checkExistingPunch } from "../../../helpers/attendance-helper.js";
 import Defaulters from "../models/user-defaulters-model.js";
 import MessageSendingService from "./message-sending-service.js";
 import { fetchDataFromPast } from '../../../jobs/job-data/fetch-user-attendance.js';
 import RawAttendance from "../models/raw-attendance-model.js";
-import {log} from '../../../utils/logger.js';
-import {errorResponseHandler} from "../../../helpers/data-validation.js";
+import { log } from '../../../utils/logger.js';
+import { errorResponseHandler } from "../../../helpers/data-validation.js";
 import eventHandler from "../../events/event-handler.js";
 import { paginate, paginateReturn } from '../../../helpers/pagination.js';
 import EmployeeActivityLogs from "../models/employee-activity-logs-model.js";
+import ActivityLog from "../models/activity-logs-model.js";
 export default class AttendanceService {
     constructor() {
         this.messageSendingService = new MessageSendingService();
     }
 
     getAttendanceData = async (req, res) => {
-        try {  
-            const { timeValue, timeUnit, empCode, dateFilter , raw } = req.query;
-    
+        try {
+            const { timeValue, timeUnit, empCode, dateFilter, raw } = req.query;
+
             const attendanceData = await fetchDataFromPast(
                 timeValue ? parseInt(timeValue) : 30,
                 timeUnit || "minutes",
@@ -26,15 +27,15 @@ export default class AttendanceService {
                 dateFilter || null,
                 raw || false
             );
-    
+
             return res.status(200).json({ success: true, data: attendanceData });
-        } 
+        }
         catch (error) {
             console.log(`An error occurred while fetching attendance data: ${error.message}`);
             return res.status(500).json({ success: false, error: error.message });
         }
     };
-    
+
     getSameTimeRecord = async (data) => {
         const sameTimeRecord = await UserAttendance.findOne({
             employeeCode: data.employeeCode,
@@ -47,7 +48,7 @@ export default class AttendanceService {
     }
 
     processNightShiftEmployee = async (data) => {
-        try{
+        try {
             const sameTimeRecord = await this.getSameTimeRecord(data);
 
             if (sameTimeRecord) {
@@ -56,22 +57,22 @@ export default class AttendanceService {
             }
 
             const punchType = await determinePunchType(data.punchTime, data.utcPunchTime, data.shiftStartTime, data.shiftEndTime, data.employeeCode, data.isNightShift);
-            
+
             // check existing attendance for the employee  with the condition of checking two hours
             // prior from the shift start time and after the shift start time 
             const twoHoursPrior = new Date(data.shiftStartTime.getTime() - 2 * 60 * 60 * 1000);
 
             let existingAttendance = await UserAttendance.findOne({
-                employeeCode : data.employeeCode
+                employeeCode: data.employeeCode
             }).or([
                 {
-                    actualPunchInTime : { $gte : data.shiftStartTime}
+                    actualPunchInTime: { $gte: data.shiftStartTime }
                 },
                 {
-                    actualPunchInTime : {$lt :twoHoursPrior }
+                    actualPunchInTime: { $lt: twoHoursPrior }
 
                 },
-                
+
             ]);
 
             console.log(`Punch type for employee :  ${data.employeeCode}: ${punchType}`);
@@ -82,7 +83,7 @@ export default class AttendanceService {
             if (punchType === 'punch-in') {
                 if (!existingAttendance) {
                     existingAttendance = new UserAttendance({
-                        employeeName : data?.employeeName,
+                        employeeName: data?.employeeName,
                         employeeCode: data.employeeCode,
                         actualPunchInTime: data.shiftStartTime,
                         userpunchInTime: data.punchTime,
@@ -139,7 +140,7 @@ export default class AttendanceService {
             else if (punchType === 'punch-out') {
                 if (!existingAttendance) {
                     existingAttendance = new UserAttendance({
-                        employeeName : data?.employeeName,
+                        employeeName: data?.employeeName,
                         employeeCode: data.employeeCode,
                         actualPunchInTime: data.shiftStartTime,
                         userpunchInTime: data.punchTime,
@@ -152,7 +153,7 @@ export default class AttendanceService {
                         hasPunchedOut: true,
                         isNightShift: true,
                         isDayShift: false,
-                        isOnTime : false
+                        isOnTime: false
                     });
                 }
                 else {
@@ -181,7 +182,7 @@ export default class AttendanceService {
                         existingAttendance.isValidPunch = !!existingAttendance.isValidPunch;
                     }
                     if (existingAttendance.hasPunchedIn && existingAttendance.hasPunchedOut) {
-                        existingAttendance.totalHours = workedHours; 
+                        existingAttendance.totalHours = workedHours;
                         existingAttendance.isValidPunch = true;
                     }
                 }
@@ -194,8 +195,7 @@ export default class AttendanceService {
                         date: { $gte: shiftDateStart, $lt: shiftDateEnd }
                     });
 
-                    if (isLeavingEarly)
-                    {
+                    if (isLeavingEarly) {
                         existingAttendance.isLeavingEarly = true;
                         if (existingDefaulter) {
                             await Defaulters.updateOne(
@@ -247,7 +247,7 @@ export default class AttendanceService {
                 isHalfDayToday
             });
         }
-        catch(error){
+        catch (error) {
             console.log(`An error occurred while processing attendance data for night Employees : ${error.message}`);
             throw error;
         }
@@ -274,30 +274,30 @@ export default class AttendanceService {
             const shiftDateEnd = new Date(shiftDateStr);
             shiftDateEnd.setDate(shiftDateEnd.getDate() + 1);
 
-            const allowedPunchTime = new Date(data.shiftStartTime.getTime() - (2 * 60 * 60 * 1000)); 
-            const utcPunchTime = new Date(data.punchTime); 
+            const allowedPunchTime = new Date(data.shiftStartTime.getTime() - (2 * 60 * 60 * 1000));
+            const utcPunchTime = new Date(data.punchTime);
 
-            if(utcPunchTime < allowedPunchTime){
+            if (utcPunchTime < allowedPunchTime) {
                 eventHandler.emit("employeeActivity", {
                     employeeCode: data.employeeCode,
-                    punchTime : data.punchTime,
-                    remarks : `Employee ${data.employeeCode} attempts to punch in 2 hour prior to their respective shift start time System will store this data in raw punches. Make sure to inform the employee about his punch`,
-                    deviceId : data.deviceId,
-                    action : "PUNCHOUT"    
+                    punchTime: data.punchTime,
+                    remarks: `Employee ${data.employeeCode} attempts to punch in 2 hour prior to their respective shift start time System will store this data in raw punches. Make sure to inform the employee about his punch`,
+                    deviceId: data.deviceId,
+                    action: "PUNCHOUT"
                 });
                 return `Employee ${data.employeeCode} attempts to punch in at ${data.punchTime} , stored in Raw punches`;
             }
-        
+
             let existingAttendance = await checkExistingPunch(data.employeeCode, shiftDateStart, shiftDateEnd);
-            
-            if(existingAttendance?.isShiftCompleted){
+
+            if (existingAttendance?.isShiftCompleted) {
                 eventHandler.emit("employeeActivity", {
                     employeeCode: data.employeeCode,
-                    punchTime : data.punchTime,
-                    remarks : `Employee ${data.employeeCode} has already punched out for the day 
+                    punchTime: data.punchTime,
+                    remarks: `Employee ${data.employeeCode} has already punched out for the day 
                     So We'll store the record in raw punches and HR has to manually enter this record.`,
-                    deviceId : data.deviceId,
-                    action : "PUNCHOUT"    
+                    deviceId: data.deviceId,
+                    action: "PUNCHOUT"
                 });
                 return `Today's Attendance Already exist for employee and stored in employee activity logs  : ${data.employeeCode}`;
             }
@@ -310,7 +310,7 @@ export default class AttendanceService {
             if (punchType === 'punch-in') {
                 if (!existingAttendance) {
                     existingAttendance = new UserAttendance({
-                        employeeName : data?.employeeName,
+                        employeeName: data?.employeeName,
                         employeeCode: data.employeeCode,
                         actualPunchInTime: data.shiftStartTime,
                         userpunchInTime: data.punchTime,
@@ -354,7 +354,7 @@ export default class AttendanceService {
                                 isLate: true,
                                 lateByTime: lateBy,
                                 lateDayCount: 1,
-                                userAttendanceId : existingAttendance._id
+                                userAttendanceId: existingAttendance._id
                             }
                         },
                         { upsert: true }
@@ -366,7 +366,7 @@ export default class AttendanceService {
             else if (punchType === 'punch-out') {
                 if (!existingAttendance) {
                     existingAttendance = new UserAttendance({
-                        employeeName : data?.employeeName,
+                        employeeName: data?.employeeName,
                         employeeCode: data.employeeCode,
                         actualPunchInTime: data.shiftStartTime,
                         userpunchInTime: data.punchTime,
@@ -379,8 +379,8 @@ export default class AttendanceService {
                         hasPunchedOut: true,
                         isNightShift: false,
                         isDayShift: true,
-                        isOnTime : false,
-                        isShiftCompleted : true
+                        isOnTime: false,
+                        isShiftCompleted: true
                     });
                 }
                 else {
@@ -410,7 +410,7 @@ export default class AttendanceService {
                         existingAttendance.isValidPunch = !!existingAttendance.isValidPunch;
                     }
                     if (existingAttendance.hasPunchedIn && existingAttendance.hasPunchedOut) {
-                        existingAttendance.totalHours = workedHours; 
+                        existingAttendance.totalHours = workedHours;
                         existingAttendance.isValidPunch = true;
                     }
                 }
@@ -433,7 +433,7 @@ export default class AttendanceService {
                                         punchOutTime: data.punchTime,
                                         earlyBy,
                                         isLeavingEarly: true,
-                                        userAttendanceId : existingAttendance._id
+                                        userAttendanceId: existingAttendance._id
                                     }
                                 }
                             );
@@ -444,7 +444,7 @@ export default class AttendanceService {
                                 punchOutTime: data.punchTime,
                                 earlyBy,
                                 isLeavingEarly: true,
-                                userAttendanceId : existingAttendance._id
+                                userAttendanceId: existingAttendance._id
                             });
                         }
                     } else {
@@ -457,7 +457,7 @@ export default class AttendanceService {
                                         punchOutTime: data.punchTime,
                                         isLeavingEarly: false,
                                         earlyBy: 0,
-                                        userAttendanceId : existingAttendance._id
+                                        userAttendanceId: existingAttendance._id
                                     }
                                 }
                             );
@@ -487,14 +487,14 @@ export default class AttendanceService {
 
     processShiftType = async (attendanceData) => {
 
-        if(attendanceData.length === 0 || !attendanceData){
+        if (attendanceData.length === 0 || !attendanceData) {
             console.log('No attendance data found');
             return 'No attendance data found to be processed!';
         }
         const processedResults = [];
 
         for (const record of attendanceData) {
-             let shiftTiming = await this.getShiftType(record.EmpCode);
+            let shiftTiming = await this.getShiftType(record.EmpCode);
             if (!shiftTiming) {
                 log.info(`Shift timing not found for employee ${record.EmpCode}`);
                 console.log(`Shift timing not found for employee ${record.EmpCode}`);
@@ -510,13 +510,13 @@ export default class AttendanceService {
             let shiftEndTime = new Date(`${shiftDate}T${shiftEndStr}:00.000Z`);
             let isNightShift = shiftEndTime < shiftStartTime ? true : false;
 
-            if(isNightShift){
+            if (isNightShift) {
                 shiftEndTime.setDate(shiftEndTime.getDate() + 1)
             }
 
             processedResults.push({
                 punchTime,
-                employeeName : shiftTiming?.name,
+                employeeName: shiftTiming?.name,
                 employeeCode: record.EmpCode,
                 isTodayOff: shiftTiming.isTodayOff,
                 isNightShift,
@@ -540,7 +540,7 @@ export default class AttendanceService {
     }
 
     processEmployeeAttendance = async (processedResults) => {
-        if(processedResults.length === 0){
+        if (processedResults.length === 0) {
             console.log('No attendance data found to be processed!');
             return;
         }
@@ -564,7 +564,7 @@ export default class AttendanceService {
                     await this.processDayShiftEmployee(record);
                 } catch (error) {
                     console.log(`Error processing for day shift employee :  ${record.employeeCode}: ${error.message}`);
-                }           
+                }
             }
         }
     }
@@ -573,11 +573,11 @@ export default class AttendanceService {
     }
 
     processRawData = async (attendanceData) => {
-        try{
+        try {
             if (!attendanceData || attendanceData.length === 0) {
                 console.log("No attendance data received.");
                 return;
-            }    
+            }
 
             // The logic is straightforward: when we receive the raw data, we'll extract the datetime and match it with the userAttendance model.
             // If the userPunchInTime or userPunchOutTime is the same, we'll skip the record. Otherwise, we'll store the record in the rawAttendance model.
@@ -623,7 +623,7 @@ export default class AttendanceService {
             }
             return processedResults;
         }
-        catch(error){
+        catch (error) {
             console.log(`An error occurred while processing raw attendance data: ${error.message}`);
             throw new Error(`An error occurred while processing raw attendance data: ${error.message}`);
         }
@@ -632,31 +632,31 @@ export default class AttendanceService {
     getRawPunches = async (req, res) => {
         try {
             const { empCode, date = new Date().toISOString().split('T')[0] } = req.query;
-    
+
             if (!empCode) {
                 return errorResponseHandler("EmpCode required", 400, res);
             }
-    
+
             const selectedDate = date ? new Date(date) : new Date();
             if (isNaN(selectedDate.getTime())) {
                 return errorResponseHandler("Invalid Date", 400, res);
             }
-    
+
             const startOfTheDay = new Date(selectedDate);
             startOfTheDay.setUTCHours(0, 0, 0, 0);
-            
+
             const endOfTheDay = new Date(selectedDate);
             endOfTheDay.setUTCHours(23, 59, 59, 999);
-    
+
             const findEmployeeRawPunches = await RawAttendance.find({
                 employeeId: empCode,
                 dateTime: { $gte: startOfTheDay, $lt: endOfTheDay }
             }).sort({ createdAt: -1 });
-    
+
             if (findEmployeeRawPunches.length < 1) {
                 return errorResponseHandler("No Raw Punches found today!", 400, res);
             }
-    
+
             return res.status(200).json({ success: true, data: findEmployeeRawPunches });
         } catch (error) {
             console.log("An error occurred while fetching raw attendance", error);
@@ -666,45 +666,45 @@ export default class AttendanceService {
                 error: error.message
             });
         }
-    };    
+    };
 
     getEmployeeActivity = async (req, res) => {
         const { employeeCode } = req.params;
         const { date = new Date().toISOString().split('T')[0] } = req.query;
-    
+
         try {
             const { page, limit, skip } = paginate(req);
-    
+
             if (!employeeCode) {
                 return errorResponseHandler("Employee code is required", 400, res);
             }
-    
+
             const selectedDate = new Date(date);
             if (isNaN(selectedDate.getTime())) {
                 return errorResponseHandler("Invalid Date", 400, res);
             }
-    
+
             // Setting Start & End of the Day for Date Filter
             const startOfTheDay = new Date(selectedDate);
             startOfTheDay.setUTCHours(0, 0, 0, 0);
-    
+
             const endOfTheDay = new Date(selectedDate);
             endOfTheDay.setUTCHours(23, 59, 59, 999);
-    
+
             // Adding date filter
             const filter = { employeeCode, punchTime: { $gte: startOfTheDay, $lt: endOfTheDay } };
-    
+
             const totalDocuments = await EmployeeActivityLogs.countDocuments(filter);
-    
+
             const findEmployeeActivity = await EmployeeActivityLogs.find(filter)
                 .skip(skip)
                 .limit(limit)
                 .sort({ createdAt: -1 });
-    
+
             const pagination = paginateReturn(page, limit, totalDocuments, findEmployeeActivity.length);
-    
+
             return res.status(200).json({ success: true, data: findEmployeeActivity, pagination });
-    
+
         } catch (error) {
             console.log('An error occurred while fetching employee activity', error);
             return res.status(error instanceof Error ? 400 : 500).json({
@@ -712,6 +712,43 @@ export default class AttendanceService {
                 message: error instanceof Error ? "Validation Error" : "Internal Server Error",
                 error: error.message
             });
+        }
+    };
+
+    getAllActivityLogs = async (req, res) => {
+        try {
+            const { page, limit, skip } = paginate(req);
+            const { employeeCode, date } = req.query;
+
+            const selectedDate = date ? new Date(date) : new Date();
+
+            if (isNaN(selectedDate.getTime())) {
+                return errorResponseHandler("Invalid Date", 400, res);
+            }
+
+            let query = {};
+            if (date) {
+                const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
+                const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
+                query = { timestamp: { $gte: startOfDay, $lte: endOfDay } };
+            }
+            console.log('query', query);
+            if (employeeCode) {
+                query.employeeCode = employeeCode;
+            }
+
+            const logs = await ActivityLog.find(query)
+                .skip(skip)
+                .limit(limit).
+                sort({ createdAt: -1 });
+
+            const total = await ActivityLog.countDocuments(query);
+            const pagination = paginateReturn(page, limit, total, logs.length);
+
+            return res.status(200).json({ success: true, data: logs, pagination });
+        } catch (error) {
+            console.error("An error occurred while fetching all employee activity", error);
+            return errorResponseHandler(error.message || "Internal Server Error", 500, res);
         }
     };
 }

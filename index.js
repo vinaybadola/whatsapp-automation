@@ -43,6 +43,7 @@ process.on('unhandledRejection', (err) => {
 
 const startServer = (port) => {
   server.listen(port, (err) => {
+    console.log('Port Running', port);
     if (err) {
       if (err.code === 'EADDRINUSE') {
         log.info(`Port ${port} is already in use. Trying port ${port + 1}...`);
