@@ -229,7 +229,11 @@ export default class UserAttendanceController {
             if (req.query.deviceId) {
                 query.deviceId = req.query.deviceId;
             }
-
+            if (req.query.status !== undefined) {
+                query.status = req.query.status === "true"; // Convert to Boolean
+            } else {
+                query.status = true; // Default to true if no status is provided
+            }
             // today date data 
             if (req.query.today) {
                 const today = new Date();
