@@ -122,7 +122,7 @@ export default class UserAttendanceController {
 
             let { userpunchInTime, userPunchOutTime, dataManipulatorEmployeeCode, userName, name, personEmployeeCode } = req.body;
             if(!name || !personEmployeeCode) {
-                errorResponseHandler("Employee name and code are required!", 400, res);
+                return errorResponseHandler("Employee name and code are required!", 400, res);
             }
             const record = await UserAttendance.findById(id);
             if (!record) return errorResponseHandler("Attendance record not found", 404, res);
