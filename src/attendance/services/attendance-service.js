@@ -751,4 +751,25 @@ export default class AttendanceService {
             return errorResponseHandler(error.message || "Internal Server Error", 500, res);
         }
     };
+
+    getActivityLogById = async(req,res)=>{
+        try{
+            const {id} = req.params;
+            if(!id){
+                return errorResponseHandler("Activity Id is required", 400, res);
+            }
+            const getData = await ActivityLog.findById(id);
+            if(getData.length<1){
+                return errorResponseHandler("Data not found", 400, res);
+            }
+            return res.status(200).json({success: true, message: "Logs Fetched Succesfully", data: getData});
+        }
+        catch(error){
+            console.log('An error occurred while fetch activity by Id', error.message);
+            if(error instanceof Error){
+                return errorResponseHandler(error.message, 400, res);
+            }
+            return errorResponseHandler("Internal Server Error", 500, res);
+        }
+    }
 }
