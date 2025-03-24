@@ -120,8 +120,10 @@ export default class UserAttendanceController {
             const { id } = req.params;
             if (!id) return errorResponseHandler("Attendance ID is required", 400, res);
 
-            let { userpunchInTime, userPunchOutTime, dataManipulatorEmployeeCode, userName } = req.body;
-
+            let { userpunchInTime, userPunchOutTime, dataManipulatorEmployeeCode, userName, name, personEmployeeCode } = req.body;
+            if(!name || !personEmployeeCode) {
+                errorResponseHandler("Employee name and code are required!", 400, res);
+            }
             const record = await UserAttendance.findById(id);
             if (!record) return errorResponseHandler("Attendance record not found", 404, res);
 
@@ -133,8 +135,11 @@ export default class UserAttendanceController {
             }
 
             let updatedFields = {};
-            if (userpunchInTime) updatedFields.userpunchInTime = ISODateChanger(validateDate(userpunchInTime));
-            if (userPunchOutTime) updatedFields.userPunchOutTime = ISODateChanger(validateDate(userPunchOutTime));
+            if (userpunchInTime) updatedFields.userpunchInTime = this.adjustTimeToUTC(userpunchInTime);
+            if (userPunchOutTime) updatedFields.userPunchOutTime = this.adjustTimeToUTC(userPunchOutTime);
+
+            updatedFields.employeeName = name;
+            updatedFields.employeeCode = personEmployeeCode;
 
             // Recalculate Attendance Data
             const { totalHours, totalHoursString } = calculateTotalHours(
