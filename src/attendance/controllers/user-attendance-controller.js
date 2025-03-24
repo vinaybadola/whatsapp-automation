@@ -601,7 +601,7 @@ export default class UserAttendanceController {
 
     softDeleteAttendance = async (req, res) => {
         try {
-            const { id, userName, dataManipulatorEmployeeCode } = req.params;
+            const { id, userName, dataManipulatorEmployeeCode } = req.query;
             if (!id) {
                 return errorResponseHandler("Attendance ID is required", 400, res);
             }
