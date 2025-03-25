@@ -194,7 +194,7 @@ export default class UserAttendanceController {
                 affectedSchema: "User-Attendance And defaulters Schema",
                 entityId: id,
                 requestPayload: req.body,
-                changes: { updatedRecord, defaultersUpdatedData },
+                changes: { updatedRecord, oldRecord : record, defaultersUpdatedData },
                 activityMessage: `Attendance Updated for Employee : ${updatedRecord.employeeCode}`,
                 ipAddress: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
                 userAgent: req.header('user-agent')
@@ -627,6 +627,7 @@ export default class UserAttendanceController {
                 employeeCode: dataManipulatorEmployeeCode,
                 action: "DELETE",
                 entity: "Attendance",
+                changes : {attendanceData},
                 affectedSchema: "User-Attendance",
                 entityId: id,
                 activityMessage: `Attendance Soft Deleted for Employee : ${attendanceData.employeeCode}`,
