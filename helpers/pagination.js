@@ -11,5 +11,3 @@ export const paginateReturn = (page, limit, total, currentPageTotal) => {
     const hasNext = page < totalPages
     return { page, limit, total, currentPageTotal, totalPages, hasPrev, hasNext };
 }
-
-  

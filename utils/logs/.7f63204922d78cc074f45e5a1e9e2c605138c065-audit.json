@@ -6,21 +6,6 @@
     "auditLog": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/.7f63204922d78cc074f45e5a1e9e2c605138c065-audit.json",
     "files": [
         {
-            "date": 1741672488621,
-            "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-03-11-daily.log",
-            "hash": "c69477439170d51f82a0c66c99ef21eba3e071c9df88266771c2d45f0af71e44"
-        },
-        {
-            "date": 1741761381568,
-            "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-03-12-daily.log",
-            "hash": "13c69d9b13396b603ef9bdc685ae462b64f0a722619d32dea74f9179ff997fd2"
-        },
-        {
-            "date": 1741849282950,
-            "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-03-13-daily.log",
-            "hash": "cb26d94b74d1e0fd65ae650df5002ef34060a6afa9a8de49db6499a1f6d90d3f"
-        },
-        {
             "date": 1741977871271,
             "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-03-15-daily.log",
             "hash": "5ba1ae4bc8cd3d8991f134f72f4eeeaa91ccc19dbf87aee7ff0540a9f69c25ba"
@@ -59,6 +44,21 @@
             "date": 1742756585331,
             "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-03-24-daily.log",
             "hash": "8774a2cca3165e7fbdeab66e8abf581d742ded04e0ae7a41b0e345e7de30eb40"
+        },
+        {
+            "date": 1742895156117,
+            "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-03-25-daily.log",
+            "hash": "12daca5b7e321c5e8078a1c0dba958ec3a86aa66e124d6779ce4f17ac493c243"
+        },
+        {
+            "date": 1742971108844,
+            "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-03-26-daily.log",
+            "hash": "d7ac7f07599a3dc20ceccc02989d0b5ca96de5b264cff75212f2125fb0b14686"
+        },
+        {
+            "date": 1743143694930,
+            "name": "/home/vinay/Desktop/main-app/whatsapp-automation/utils/logs/2025-03-28-daily.log",
+            "hash": "aa1fcfaea03b334ec64ad5b600469ad97eb71c9fe61af666b067c7bb3628a7d2"
         }
     ],
     "hashType": "sha256"
