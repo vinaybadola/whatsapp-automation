@@ -1,6 +1,6 @@
 import { shiftRoasterDB } from "../../../config/externalDatabase.js";
 import UserAttendance from "../../attendance/models/user-attendance-model.js";
-import { determinePunchType, checkPunchOutValidity, checkPunchInValidity, checkExistingPunch } from "../../../helpers/attendance-helper.js";
+import { determinePunchType, checkPunchOutValidity, checkPunchInValidity, checkExistingPunchForDayShift } from "../../../helpers/attendance-helper.js";
 import Defaulters from "../models/user-defaulters-model.js";
 import MessageSendingService from "./message-sending-service.js";
 import { fetchDataFromPast } from '../../../jobs/job-data/fetch-user-attendance.js';
@@ -11,6 +11,14 @@ import eventHandler from "../../events/event-handler.js";
 import { paginate, paginateReturn } from '../../../helpers/pagination.js';
 import EmployeeActivityLogs from "../models/employee-activity-logs-model.js";
 import ActivityLog from "../models/activity-logs-model.js";
+
+const MAX_LATE_FOR_HALF_DAY_MS = 4 * 60 * 60 * 1000;
+const GRACE_PERIOD_MS = 30 * 60 * 1000;
+const PUNCH_WINDOW_HOURS_MS = 2 * 60 * 60 * 1000;
+const HALF_DAY_HOURS = 4;
+const FULL_DAY_HOURS= 8;
+const TIMEZONE_OFFSET_MS= 5.5 * 60 * 60 * 1000;
+
 export default class AttendanceService {
     constructor() {
         this.messageSendingService = new MessageSendingService();
@@ -57,25 +65,67 @@ export default class AttendanceService {
             }
 
             const punchType = await determinePunchType(data.punchTime, data.utcPunchTime, data.shiftStartTime, data.shiftEndTime, data.employeeCode, data.isNightShift);
+            let existingAttendance;
+          
+            if(punchType === 'punch-in'){
+                // check if the employee has already punched in within the last 2 hours
+                existingAttendance = await UserAttendance.findOne({
+                    employeeCode: data.employeeCode,
+                    $or: [
+                        // Case 1: User punched in within the last 2 hours before shift start time (06:00 AM to 07:59 AM for 08:00 AM shift)
+                        { 
+                            userpunchInTime: { 
+                                $gte: new Date(data.shiftStartTime - PUNCH_WINDOW_HOURS_MS), // Greater than or equal to shift start time - 2 hours
+                                $lt: new Date(data.shiftStartTime) // Less than shift start time
+                            } 
+                        },
+                
+                        // Case 2: User punched in after shift start time (Late arrival case)
+                        { 
+                            userpunchInTime: { $gte: new Date(data.shiftStartTime) } 
+                        }
+                    ]
+                });
+            }
+            else if(punchType === 'punch-out'){
+                // check if the employee has already punched out within the last 2 hours or has status of isShiftCompleted between 
+                // shift start time and shift end time.
 
-            // check existing attendance for the employee  with the condition of checking two hours
-            // prior from the shift start time and after the shift start time 
-            const twoHoursPrior = new Date(data.shiftStartTime.getTime() - 2 * 60 * 60 * 1000);
+                const time = new Date().getTime()+(TIMEZONE_OFFSET_MS);
+                const currentTime = new Date(time).toISOString();
 
-            let existingAttendance = await UserAttendance.findOne({
-                employeeCode: data.employeeCode
-            }).or([
-                {
-                    actualPunchInTime: { $gte: data.shiftStartTime }
-                },
-                {
-                    actualPunchInTime: { $lt: twoHoursPrior }
-
-                },
-
-            ]);
-
-            console.log(`Punch type for employee :  ${data.employeeCode}: ${punchType}`);
+                existingAttendance =await UserAttendance.findOne({
+                    employeeCode: data.employeeCode,
+                    $or: [
+                      // Not punched out yet tries to punch out early (checking if current time is less than actual punch out time)
+                      { actualPunchOutTime: { $gt: currentTime } },
+                      
+                      // Punched out but within grace period of 30 minutes if not found this will create a new record 
+                      {
+                        actualPunchOutTime: {
+                            $lte: currentTime,
+                            $gte: new Date(new Date(currentTime).getTime() - GRACE_PERIOD_MS)
+                        }
+                    }
+                    ],
+                  });
+                if(existingAttendance?.isShiftCompleted === true){
+                    eventHandler.emit("employeeActivity", {
+                    employeeCode: data.employeeCode,
+                    punchTime: data.punchTime,
+                    remarks: `Night shift Employee ${data.employeeCode} already punch out at ${existingAttendance.userPunchOutTime} so this record will be stored in raw punches.`,
+                    deviceId: data.deviceId,
+                    action: "PUNCHOUT"
+                 });
+                 return `Employee ${data.employeeCode} Shift Already completed at ${existingAttendance.userPunchOutTime}`;
+                }
+            }
+            else{
+                log.info(`Employee ${data.employeeCode} has an invalid punch at ${data.punchTime}`);
+                return "Invalid Punch Type";
+            }
+            
+            log.info(`Punch type for employee :  ${data.employeeCode}: ${punchType}`);
 
             let employeeLateMinutes = 0; // These two variables are use to determine if the employee is late or not and halfday to send it for
             let isHalfDayToday = false; // sending message 
@@ -101,16 +151,13 @@ export default class AttendanceService {
                     existingAttendance.userpunchInTime = data.punchTime;
                 }
 
-                const gracePeriod = 30 * 60 * 1000;
-                const allowedPunchInEnd = new Date(data.shiftStartTime.getTime() + gracePeriod);
-                const { isWithinWindow, isLate, lateBy } = checkPunchInValidity(
+                const { isWithinWindow, lateBy } = checkPunchInValidity(
                     data.punchTime,
                     data.shiftStartTime,
-                    gracePeriod,
-                    allowedPunchInEnd
+                    GRACE_PERIOD_MS,
                 );
 
-                if (data.punchTime - data.shiftStartTime >= 4 * 60 * 60 * 1000) {    // if punch in is more than 4 hours after shift start time then it is a half day
+                if (data.punchTime - data.shiftStartTime >= MAX_LATE_FOR_HALF_DAY_MS) {    // if punch in is more than 4 hours after shift start time then it is a half day
                     existingAttendance.isHalfDay = true;
                     isHalfDayToday = true;
                 }
@@ -118,25 +165,27 @@ export default class AttendanceService {
                 if (!isWithinWindow) {
                     employeeLateMinutes = lateBy;
                     existingAttendance.isOnTime = false;
-                    await Defaulters.updateOne(
-                        { employeeCode: data.employeeCode, date: startOfToday },
+                    
+                    await this.handleDefaulterUpdate(
+                        data.employeeCode,  
+                        {punchInTime: { 
+                            $gte: new Date(data.shiftStartTime),
+                            $lt: new Date(data.shiftEndTime)
+                        }},
                         {
-                            $set: {
-                                employeeCode: data.employeeCode,
-                                punchInTime: data.punchTime,
-                                isLate: true,
-                                lateByTime: lateBy,
-                                lateDayCount: 1
-                            }
-                        },
-                        { upsert: true }
-                    );
+                            date : new Date(data.punchTime),
+                            employeeCode: data.employeeCode,
+                            punchInTime: new Date(data.punchTime),
+                            isLate: true,
+                            lateByTime: lateBy,
+                            lateDayCount: 1
+                        }
+                    )
                 }
 
                 await existingAttendance.save();
 
             }
-
             else if (punchType === 'punch-out') {
                 if (!existingAttendance) {
                     existingAttendance = new UserAttendance({
@@ -153,12 +202,13 @@ export default class AttendanceService {
                         hasPunchedOut: true,
                         isNightShift: true,
                         isDayShift: false,
-                        isOnTime: false
+                        isShiftCompleted : true
                     });
                 }
                 else {
                     existingAttendance.userPunchOutTime = data.punchTime;
                     existingAttendance.hasPunchedOut = true;
+                    existingAttendance.isShiftCompleted = true;
 
                     let workedHours;
                     if (!existingAttendance.isValidPunch && !existingAttendance.hasPunchedIn) {
@@ -173,9 +223,9 @@ export default class AttendanceService {
                         workedHours = `${countingHours} hours ${minutes} minutes`;
 
                         existingAttendance.totalHours = workedHours;
-                        existingAttendance.isAbsent = countingHours < 4;
+                        existingAttendance.isAbsent = countingHours < HALF_DAY_HOURS;
 
-                        if (!existingAttendance.isAbsent && countingHours < 8) {
+                        if (!existingAttendance.isAbsent && countingHours < FULL_DAY_HOURS) {
                             existingAttendance.isHalfDay = true;
                         }
 
@@ -192,26 +242,36 @@ export default class AttendanceService {
 
                     const existingDefaulter = await Defaulters.findOne({
                         employeeCode: data.employeeCode,
-                        date: { $gte: shiftDateStart, $lt: shiftDateEnd }
+                        punchInTime: { 
+                            $gte: data.shiftStartTime, 
+                            $lt: data.shiftEndTime 
+                        }
                     });
 
                     if (isLeavingEarly) {
                         existingAttendance.isLeavingEarly = true;
                         if (existingDefaulter) {
                             await Defaulters.updateOne(
-                                { employeeCode: data.employeeCode, date: startOfToday },
+                                { employeeCode: data.employeeCode, 
+                                    punchInTime: { 
+                                        $gte: data.shiftStartTime,
+                                        $lt: data.shiftEndTime
+                                    }
+                                },
                                 {
                                     $set: {
+                                        date : data.punchTime,
                                         punchOutTime: data.punchTime,
                                         earlyBy,
                                         isLeavingEarly: true
                                     }
-                                }
+                                },
+                                { upsert: true }
                             );
                         } else {
                             await Defaulters.create({
                                 employeeCode: data.employeeCode,
-                                date: startOfToday,
+                                date: data.punchTime,
                                 punchOutTime: data.punchTime,
                                 earlyBy,
                                 isLeavingEarly: true
@@ -222,9 +282,15 @@ export default class AttendanceService {
                         existingAttendance.isLeavingEarly = false;
                         if (existingDefaulter) {
                             await Defaulters.updateOne(
-                                { employeeCode: data.employeeCode, date: startOfToday },
+                                { employeeCode: data.employeeCode,
+                                    punchInTime: { 
+                                        $gte: data.shiftStartTime,
+                                        $lt: data.shiftEndTime
+                                    }
+                                },
                                 {
                                     $set: {
+                                        date : data.punchTime,
                                         punchOutTime: data.punchTime,
                                         isLeavingEarly: false,
                                         earlyBy: 0
@@ -235,6 +301,10 @@ export default class AttendanceService {
                     }
                 }
                 await existingAttendance.save();
+            }
+            else{
+                log.info(`Employee ${data.employeeCode} has an invalid punch at ${data.punchTime}`);
+                return "Invalid Punch Type";
             }
             await this.messageSendingService.sendMessage({
                 id: existingAttendance._id,
@@ -259,7 +329,6 @@ export default class AttendanceService {
 
             if (sameTimeRecord) {
                 log.info(`Day Shift Employee ${data.employeeCode} has already punched at ${new Date(data.punchTime).toUTCString} so skipping the record`);
-                console.log(`Day Shift Employee ${data.employeeCode} has already punched at ${new Date(data.punchTime).toUTCString} so skipping the record`);
                 return;
             }
 
@@ -274,7 +343,7 @@ export default class AttendanceService {
             const shiftDateEnd = new Date(shiftDateStr);
             shiftDateEnd.setDate(shiftDateEnd.getDate() + 1);
 
-            const allowedPunchTime = new Date(data.shiftStartTime.getTime() - (2 * 60 * 60 * 1000));
+            const allowedPunchTime = new Date(data.shiftStartTime.getTime() - (PUNCH_WINDOW_HOURS_MS));
             const utcPunchTime = new Date(data.punchTime);
 
             if (utcPunchTime < allowedPunchTime) {
@@ -288,7 +357,7 @@ export default class AttendanceService {
                 return `Employee ${data.employeeCode} attempts to punch in at ${data.punchTime} , stored in Raw punches`;
             }
 
-            let existingAttendance = await checkExistingPunch(data.employeeCode, shiftDateStart, shiftDateEnd);
+            let existingAttendance = await checkExistingPunchForDayShift(data.employeeCode, shiftDateStart, shiftDateEnd);
 
             if (existingAttendance?.isShiftCompleted) {
                 eventHandler.emit("employeeActivity", {
@@ -302,7 +371,7 @@ export default class AttendanceService {
                 return `Today's Attendance Already exist for employee and stored in employee activity logs  : ${data.employeeCode}`;
             }
 
-            console.log(`Punch type for employee :  ${data.employeeCode}: ${punchType}`);
+            log.info(`Punch type for employee :  ${data.employeeCode}: ${punchType}`);
 
             let employeeLateMinutes = 0; // These two variables are use to determine if the employee is late or not and halfday to send it for
             let isHalfDayToday = false; // sending message 
@@ -328,16 +397,13 @@ export default class AttendanceService {
                     existingAttendance.userpunchInTime = punchTime;
                 }
 
-                const gracePeriod = 30 * 60 * 1000;
-                const allowedPunchInEnd = new Date(data.shiftStartTime.getTime() + gracePeriod);
-                const { isWithinWindow, lateBy } = checkPunchInValidity(
+                const { isWithinWindow,lateBy } = checkPunchInValidity(
                     data.punchTime,
                     data.shiftStartTime,
-                    gracePeriod,
-                    allowedPunchInEnd
+                    GRACE_PERIOD_MS,
                 );
 
-                if (data.punchTime - data.shiftStartTime >= 4 * 60 * 60 * 1000) {    // if punch in is more than 4 hours after shift start time then it is a half day
+                if (data.punchTime - data.shiftStartTime >= MAX_LATE_FOR_HALF_DAY_MS) {    // if punch in is more than 4 hours after shift start time then it is a half day
                     existingAttendance.isHalfDay = true;
                     isHalfDayToday = true;
                 }
@@ -401,9 +467,9 @@ export default class AttendanceService {
                         workedHours = `${countingHours} hours ${minutes} minutes`;
 
                         existingAttendance.totalHours = workedHours;
-                        existingAttendance.isAbsent = countingHours < 4;
+                        existingAttendance.isAbsent = countingHours < HALF_DAY_HOURS;
 
-                        if (!existingAttendance.isAbsent && countingHours < 8) {
+                        if (!existingAttendance.isAbsent && countingHours < FULL_DAY_HOURS) {
                             existingAttendance.isHalfDay = true;
                         }
 
@@ -501,19 +567,61 @@ export default class AttendanceService {
                 continue;
             }
             const punchTime = new Date(record.DateTime);
-            const utcPunchTime = new Date(punchTime.getTime() - (5.5 * 60 * 60 * 1000));
+            const utcPunchTime = new Date(punchTime.getTime() - (TIMEZONE_OFFSET_MS));
             const [shiftStartStr, shiftEndStr] = shiftTiming.shiftTime.split('-').map(s => s.trim());
 
-            const shiftDate = new Date(utcPunchTime).toISOString().split('T')[0];
-            const shiftStartTime = new Date(`${shiftDate}T${shiftStartStr}:00.000Z`);
+            let shiftDate = new Date(utcPunchTime).toISOString().split('T')[0];
+            let shiftStartTime = new Date(`${shiftDate}T${shiftStartStr}:00.000Z`);
 
             let shiftEndTime = new Date(`${shiftDate}T${shiftEndStr}:00.000Z`);
             let isNightShift = shiftEndTime < shiftStartTime ? true : false;
 
             if (isNightShift) {
-                shiftEndTime.setDate(shiftEndTime.getDate() + 1)
-            }
+                shiftEndTime.setDate(shiftEndTime.getDate() + 1);
+                // find the record that has actualPunchOutTime less than current time or my current time is 30 minutes more than that actualPunchOutTime
+                // This is done to find existing record to update and instead of creating the shiftStart time and shiftEnd time using current time
+                // we use existing record and put those values in shiftStart and shiftEnd time
+                // if such record is found then change the shiftStartTime to the actualPunchInTime of that record and shift EndTime to the actualPunchOutTime of that record.
+                const time = new Date().getTime()+(TIMEZONE_OFFSET_MS);
+                const currentTime = new Date(time).toISOString();
 
+
+                const findData = await UserAttendance.findOne({
+                    employeeCode: record.EmpCode,
+                    $expr: {
+                      $or: [
+                        // Case 1: Not punched out yet (current time is before punch-out time)
+                        { $gt: ["$actualPunchOutTime", currentTime] },
+                        
+                        // Case 2: Within 30-minute grace period after punch-out
+                        { 
+                          $and: [
+                            { $lte: ["$actualPunchOutTime", currentTime] }, // Already punched out
+                            { $gte: [currentTime, { $subtract: ["$actualPunchOutTime", GRACE_PERIOD_MS] }] } // Within grace period
+                          ]
+                        }
+                      ]
+                    },
+                    isShiftCompleted : false
+                });
+                if(findData){
+                    log.info(`Night shift found for employee ${record.EmpCode} at ${record.DateTime}}`);
+                    shiftEndTime = findData.actualPunchOutTime;
+                    shiftStartTime = findData.actualPunchInTime;
+                }
+                else{
+                    // If data not found then check if shiftStartTime is 6 hours plus from the current time 
+                    // If yes that means employee hasn't punch in and so we have to make shift start time previous one day 
+                    // to his actual punch in time and shift end time to his actual punch out time 
+                 
+                    if(shiftStartTime.getTime() - currentTime.getTime() > 6 * 60 * 60 * 1000 ){
+                        shiftStartTime.setDate(shiftStartTime.getDate() - 1);
+                        shiftEndTime.setDate(shiftEndTime.getDate() - 1);
+                        log.info(`Employee ${record.EmpCode} hasn't punch in yet so we marked them punch out at ${shiftEndTime} and punch in at ${shiftStartTime}`);
+                    }
+
+                }
+            }
             processedResults.push({
                 punchTime,
                 employeeName: shiftTiming?.name,
@@ -548,15 +656,13 @@ export default class AttendanceService {
 
         for (const record of processedResults) {
             log.info(`Processing ${record.employeeCode} at ${record.punchTime}`);
-            console.log(`Processing ${record.employeeCode} at ${record.punchTime}`);
             if (record.isNightShift) {
-                console.log(`${record.employeeCode} is a night shift employee, skipping.`);
-                // try{
-                //     await this.processNightShiftEmployee(record);
-                // }
-                // catch(error){
-                //     console.log(`Error processing for night shift employee :  ${record.employeeCode}: ${error.message}`);
-                // }
+                try{
+                    await this.processNightShiftEmployee(record);
+                }
+                catch(error){
+                    console.log(`Error processing for night shift employee :  ${record.employeeCode}: ${error.message}`);
+                }
                 continue;
             }
             else {
@@ -569,8 +675,13 @@ export default class AttendanceService {
         }
     }
 
-    defaulterEmployeeProcess = async (record) => {
-    }
+    handleDefaulterUpdate = async (employeeCode, criteria, updateData) => {
+        await Defaulters.updateOne(
+          { employeeCode, ...criteria },
+          { $set: updateData },
+          { upsert: true }
+        );
+    };
 
     processRawData = async (attendanceData) => {
         try {
@@ -599,7 +710,6 @@ export default class AttendanceService {
                 });
                 if (sameTimeRecord) {
                     log.info(`Same Time Record has found during raw processing of Employee ${record.EmpCode} at ${punchTimeISO} so skipping the record`);
-                    console.log(`Same Time Record has found during raw processing of Employee ${record.EmpCode} at ${punchTimeISO} so skipping the record`);
                     // we can also set the status false for the record of employeeID and dateTime 
                     // to avoid the duplicate record in the future
                     await RawAttendance.updateOne({ employeeId: record.EmpCode, dateTime: punchTime },

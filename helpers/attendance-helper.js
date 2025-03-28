@@ -25,7 +25,7 @@ const determinePunchType = async (LocalPunchTime,userDateTime, shiftStart, shift
     const shiftDateEnd = new Date(shiftDateStr);
     shiftDateEnd.setDate(shiftDateEnd.getDate() + 1);
 
-    const latestAttendance = await checkExistingPunch(employeeCode, shiftDateStart, shiftDateEnd);
+    const latestAttendance = await checkExistingPunchForDayShift(employeeCode, shiftDateStart, shiftDateEnd);
 
     if (latestAttendance) {
       return 'punch-out';
@@ -33,7 +33,20 @@ const determinePunchType = async (LocalPunchTime,userDateTime, shiftStart, shift
   }
 
   if(isNightShift){
-      
+    // If current time is less than 1 hour from shift start time and more than 4 hour from shift start time, then it's a punch-in
+    // If current time is more than 4 hour from the shift start time 
+    const shiftStarted = new Date(shiftStart); 
+    const punch = new Date(LocalPunchTime); 
+
+    const diffInHours = (punch - shiftStarted) / (1000 * 60 * 60); // Difference in hours
+
+    if (diffInHours >= -1 && diffInHours < 0) {
+        return "punch-in";
+    } else if (diffInHours >= 0 && diffInHours <= 4) {
+        return "punch-in";
+    } else if (diffInHours > 4) {
+        return "punch-out";
+    }
   }
 
   // if user punched in after shiftEnd, it's a punch-out
@@ -74,26 +87,25 @@ const calculateAllowedWindow = (shiftStart) => ({
   allowedPunchInStart: new Date(shiftStart.getTime() + 30 * 60 * 1000),
 });
 
-const checkPunchInValidity = (userPunchIn, shiftStart, allowedPunchInEnd) => {
+const checkPunchInValidity = (userPunchIn, shiftStart, gracePeriod) => {
 
-  const isWithinWindow = userPunchIn >= shiftStart && userPunchIn <= allowedPunchInEnd;
+  const maxAllowedPunchIn = new Date(shiftStart.getTime() + gracePeriod);  
+  const isWithinWindow = new Date(userPunchIn) <= maxAllowedPunchIn ? true : false;
 
-  const isLate = userPunchIn > allowedPunchInEnd;
-  
   if (userPunchIn < shiftStart) {
-      return { isWithinWindow: true, isLate: false, lateBy: "0 hours 0 minutes" };
+    return { isWithinWindow: true, lateBy: "0 hours 0 minutes" };
   }
 
-  let lateBy = isLate ? Math.abs(userPunchIn - shiftStart) / (60 * 1000) : 0;
-
+  let lateBy = !isWithinWindow ? Math.abs(userPunchIn - shiftStart) / (60 * 1000) : 0;
+  
   const hours = Math.floor(lateBy / 60);
   const minutes = (lateBy % 60).toFixed(0);
   lateBy = `${hours} hours ${minutes} minutes`;
 
-  return { isWithinWindow, isLate, lateBy };
+  return { isWithinWindow, lateBy };
 };
 
-const checkExistingPunch = async (employeeCode, shiftDateStart, shiftDateEnd) => {
+const checkExistingPunchForDayShift = async (employeeCode, shiftDateStart, shiftDateEnd) => {
   return await UserAttendance.findOne({
     employeeCode,
     userpunchInTime: { $gte: shiftDateStart, $lt: shiftDateEnd }
@@ -107,5 +119,5 @@ export {
   checkPunchOutValidity,
   calculateAllowedWindow,
   checkPunchInValidity,
-  checkExistingPunch
+  checkExistingPunchForDayShift
 };
