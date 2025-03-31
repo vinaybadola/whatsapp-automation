@@ -614,7 +614,7 @@ export default class AttendanceService {
                     // If yes that means employee hasn't punch in and so we have to make shift start time previous one day 
                     // to his actual punch in time and shift end time to his actual punch out time 
                  
-                    if(shiftStartTime.getTime() - currentTime.getTime() > 6 * 60 * 60 * 1000 ){
+                    if(shiftStartTime.getTime() - new Date(currentTime).getTime() > 6 * 60 * 60 * 1000 ){
                         shiftStartTime.setDate(shiftStartTime.getDate() - 1);
                         shiftEndTime.setDate(shiftEndTime.getDate() - 1);
                         log.info(`Employee ${record.EmpCode} hasn't punch in yet so we marked them punch out at ${shiftEndTime} and punch in at ${shiftStartTime}`);
