@@ -18,14 +18,16 @@ dotenv.config();
 await connectDB();
 
 const fetchLateEmployees = async () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(today);
-    endOfDay.setHours(23, 59, 59, 999);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0); 
+
+    const endOfYesterday = new Date(yesterday);
+    endOfYesterday.setHours(23, 59, 59, 999); 
 
     return await Defaulters.find({
         isLate: true,
-        date: { $gte: today, $lt: endOfDay }
+        date: { $gte: yesterday, $lt: endOfYesterday }
     }).populate({ path: "userAttendanceId", select: "employeeName" })
     .then((data) => data.map((employee) => ({
         name: employee.userAttendanceId?.employeeName || "Unknown",
@@ -141,7 +143,7 @@ const sendLateReportEmail = async (imagePath, lateEmployees) => {
 };
 
 const runFetchLateAttendanceReportJob = async () => {
-    cron.schedule("00 20 * * *", async () => {
+    cron.schedule("00 10 * * *", async () => {
     console.log("🚀 Running late attendance report job...");
     try {
         const lateEmployees = await fetchLateEmployees();
